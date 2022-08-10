@@ -1,4 +1,4 @@
 github.com/devfeel/mapper v0.7.10 h1:XYP+IzBI3uUf/CeiGdqopFc1vcodifmvmtg/X907xdQ=
 github.com/devfeel/mapper v0.7.10/go.mod h1:foz4u16jrssGoDfnWYQGFcthjlU6uBV5UV8uYJfKneA=
-github.com/farseer-go/fs v0.0.0-20220807091751-56d67e061446 h1:b0NgnCqBYmBPoxwDCdP0u5wVWgqMy39ZD7LTc3mQc5Y=
-github.com/farseer-go/fs v0.0.0-20220807091751-56d67e061446/go.mod h1:mg9BZsc2+UIICdjohXH6Ne5rpIZgwqDBetLlpGAnID4=
+github.com/farseer-go/collections v0.0.0-20220808152306-40c82a16a4bb h1:h3xZLIgtdVCGym5IDLuLhUkgacdQSbxrYRdEmqBMLtg=
+github.com/farseer-go/collections v0.0.0-20220808152306-40c82a16a4bb/go.mod h1:xRm8y3aZmKuSWBwMLmDLJd5Ooo0c7tBfhKRes7d/CwY=

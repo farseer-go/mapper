@@ -2,7 +2,7 @@ package mapper
 
 import (
 	"github.com/devfeel/mapper"
-	"github.com/farseer-go/fs/core"
+	"github.com/farseer-go/collections"
 )
 
 // Array 数组转换
@@ -20,7 +20,7 @@ func Single[T any](fromObj any) T {
 }
 
 // PageList 转换成core.PageList
-func PageList[TData any](fromObj any, recordCount int64) core.PageList[TData] {
+func PageList[TData any](fromObj any, recordCount int64) collections.PageList[TData] {
 	lst := Array[TData](fromObj)
-	return core.NewPageList(lst, recordCount)
+	return collections.NewPageList(collections.NewList(lst...), recordCount)
 }
