@@ -6,6 +6,7 @@ import (
 )
 
 // Array 数组转换
+// fromSlice=数组切片
 func Array[T any](fromSlice any) []T {
 	var toSlice []T
 	_ = mapper.MapperSlice(fromSlice, &toSlice)
@@ -13,14 +14,23 @@ func Array[T any](fromSlice any) []T {
 }
 
 // Single 单个转换
-func Single[T any](fromObj any) T {
-	var toObj T
-	_ = mapper.MapperSlice(fromObj, &toObj)
+// fromObjPtr=struct的指针
+func Single[TEntity any](fromObjPtr any) TEntity {
+	var toObj TEntity
+	_ = mapper.AutoMapper(fromObjPtr, &toObj)
 	return toObj
 }
 
 // PageList 转换成core.PageList
-func PageList[TData any](fromObj any, recordCount int64) collections.PageList[TData] {
-	lst := Array[TData](fromObj)
-	return collections.NewPageList(collections.NewList(lst...), recordCount)
+// fromSlice=数组切片
+func PageList[TEntity any](fromSlice any, recordCount int64) collections.PageList[TEntity] {
+	arr := Array[TEntity](fromSlice)
+	return collections.NewPageList(collections.NewList(arr...), recordCount)
+}
+
+// ToList ListAny转List泛型
+func ToList[TEntity any](source collections.ListAny) collections.List[TEntity] {
+	toSlice := Array[TEntity](source.ToArray())
+	lst := collections.NewList[TEntity](toSlice...)
+	return lst
 }
