@@ -8,7 +8,7 @@
         * Single （单个转换）
         * PageList （转换成core.PageList）
         * ToList （ListAny转List泛型）
-        * ToListAny （切片转ToListAny）
+        * ToListAny （切片、List转ToListAny）
 
 ## Getting Started
 ```go
@@ -54,4 +54,7 @@ slice mapTo collections.ListAny
 ```go
 arrPO := []po{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
 mapper.ToListAny(arrPO)     // return collections.ListAny
+
+lst := collections.NewList(po{Name: "steden", Age: 18}, po{Name: "steden1", Age: 20})
+mapper.ToListAny(lst)       // return collections.ListAny
 ```

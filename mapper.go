@@ -4,6 +4,7 @@ import (
 	"github.com/devfeel/mapper"
 	"github.com/farseer-go/collections"
 	"reflect"
+	"strings"
 )
 
 // Array 数组转换
@@ -37,20 +38,29 @@ func ToList[TEntity any](source collections.ListAny) collections.List[TEntity] {
 }
 
 // ToListAny 切片转ToListAny
-func ToListAny(arrSlice any) collections.ListAny {
-	arrVal := reflect.ValueOf(arrSlice)
-	if arrVal.Kind() == reflect.Ptr {
-		arrVal = arrVal.Elem()
+func ToListAny(sliceOrList any) collections.ListAny {
+	sliceOrListVal := reflect.ValueOf(sliceOrList)
+	if sliceOrListVal.Kind() == reflect.Ptr {
+		sliceOrListVal = sliceOrListVal.Elem()
 	}
-	if arrVal.Kind() != reflect.Slice {
-		panic("arrSlice入参必须为切片类型")
-	}
+	sliceOrListType := sliceOrListVal.Type()
 
 	lst := collections.NewListAny()
-	for i := 0; i < arrVal.Len(); i++ {
-		itemValue := arrVal.Index(i).Interface()
-		lst.Add(itemValue)
+	// 切片类型
+	if sliceOrListVal.Kind() == reflect.Slice || sliceOrListVal.Kind() == reflect.Array {
+		for i := 0; i < sliceOrListVal.Len(); i++ {
+			itemValue := sliceOrListVal.Index(i).Interface()
+			lst.Add(itemValue)
+		}
+		return lst
 	}
-
-	return lst
+	if strings.HasPrefix(sliceOrListType.String(), "collections.List[") {
+		arrValue := sliceOrListVal.MethodByName("ToArray").Call(nil)[0]
+		for i := 0; i < arrValue.Len(); i++ {
+			itemValue := arrValue.Index(i)
+			lst.Add(itemValue.Interface())
+		}
+		return lst
+	}
+	panic("sliceOrList入参必须为切片或collections.List集合")
 }

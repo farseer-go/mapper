@@ -71,12 +71,25 @@ func TestToList(t *testing.T) {
 
 func TestToListAny(t *testing.T) {
 	arrPO := []po{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
-	lst := ToListAny(arrPO)
-	if lst.Count() != len(arrPO) {
+
+	listAny := ToListAny(arrPO)
+	if listAny.Count() != len(arrPO) {
 		t.Error()
 	}
-	for i := 0; i < lst.Count(); i++ {
-		po := lst.Index(i).(po)
+	for i := 0; i < listAny.Count(); i++ {
+		po := listAny.Index(i).(po)
+		if po.Name != arrPO[i].Name || po.Age != arrPO[i].Age {
+			t.Error()
+		}
+	}
+
+	lst := collections.NewList(arrPO...)
+	listAny = ToListAny(lst)
+	if listAny.Count() != len(arrPO) {
+		t.Error()
+	}
+	for i := 0; i < listAny.Count(); i++ {
+		po := listAny.Index(i).(po)
 		if po.Name != arrPO[i].Name || po.Age != arrPO[i].Age {
 			t.Error()
 		}
