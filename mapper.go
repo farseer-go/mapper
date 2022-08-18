@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/devfeel/mapper"
 	"github.com/farseer-go/collections"
+	"reflect"
 )
 
 // Array 数组转换
@@ -32,5 +33,24 @@ func PageList[TEntity any](fromSlice any, recordCount int64) collections.PageLis
 func ToList[TEntity any](source collections.ListAny) collections.List[TEntity] {
 	toSlice := Array[TEntity](source.ToArray())
 	lst := collections.NewList[TEntity](toSlice...)
+	return lst
+}
+
+// ToListAny 切片转ToListAny
+func ToListAny(arrSlice any) collections.ListAny {
+	arrVal := reflect.ValueOf(arrSlice)
+	if arrVal.Kind() == reflect.Ptr {
+		arrVal = arrVal.Elem()
+	}
+	if arrVal.Kind() != reflect.Slice {
+		panic("arrSlice入参必须为切片类型")
+	}
+
+	lst := collections.NewListAny()
+	for i := 0; i < arrVal.Len(); i++ {
+		itemValue := arrVal.Index(i).Interface()
+		lst.Add(itemValue)
+	}
+
 	return lst
 }
