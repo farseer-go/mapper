@@ -32,6 +32,9 @@ func PageList[TEntity any](fromSlice any, recordCount int64) collections.PageLis
 
 // ToList ListAny转List泛型
 func ToList[TEntity any](source collections.ListAny) collections.List[TEntity] {
+	if source.Count() == 0 {
+		return collections.NewList[TEntity]()
+	}
 	toSlice := Array[TEntity](source.ToArray())
 	lst := collections.NewList[TEntity](toSlice...)
 	return lst
