@@ -36,7 +36,7 @@ func TestSingle(t *testing.T) {
 
 func TestPageList(t *testing.T) {
 	arrPO := []po{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
-	lst := PageList[do](arrPO, 10)
+	lst := ToPageList[do](arrPO, 10)
 
 	assert.Equal(t, len(arrPO), lst.List.Count())
 

@@ -6,7 +6,7 @@
     * func
         * Array （数组转换）
         * Single （单个转换）
-        * PageList （转换成core.PageList）
+        * ToPageList （转换成core.PageList）
         * ToList （ListAny转List泛型）
         * ToListAny （切片、List转ToListAny）
 
@@ -35,11 +35,11 @@ poSingle := po{Name: "steden", Age: 18}
 mapper.Single[do](&poSingle)   // return do{Name: "steden", Age: 18}
 ```
 
-### PageList
+### ToPageList
 slice struct mapTo collections.PageList
 ```go
 arrPO := []po{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
-mapper.PageList[po](arrPO, 10) // return collections.PageList[do]
+mapper.ToPageList[po](arrPO, 10) // return collections.PageList[do]
 ```
 
 ### ToList

@@ -23,9 +23,9 @@ func Single[TEntity any](fromObjPtr any) TEntity {
 	return toObj
 }
 
-// PageList 转换成core.PageList
+// ToPageList 转换成core.PageList
 // fromSlice=数组切片
-func PageList[TEntity any](fromSlice any, recordCount int64) collections.PageList[TEntity] {
+func ToPageList[TEntity any](fromSlice any, recordCount int64) collections.PageList[TEntity] {
 	arr := Array[TEntity](fromSlice)
 	return collections.NewPageList(collections.NewList(arr...), recordCount)
 }
