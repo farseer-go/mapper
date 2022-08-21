@@ -48,16 +48,35 @@ func TestPageList(t *testing.T) {
 }
 
 func TestToList(t *testing.T) {
-	lstAny := collections.NewListAny(po{Name: "steden", Age: 18}, po{Name: "steden1", Age: 20})
-	lstDO := ToList[do](lstAny)
+	lst := collections.NewList(po{Name: "steden", Age: 18}, po{Name: "steden1", Age: 20})
+	lstDO := ToList[do](lst)
+
+	assert.Equal(t, lst.Count(), lstDO.Count())
+
+	for i := 0; i < lst.Count(); i++ {
+		assert.Equal(t, lst.Index(i).Name, lstDO.Index(i).Name)
+		assert.Equal(t, lst.Index(i).Age, lstDO.Index(i).Age)
+	}
+
+	lstAny := lst.ToListAny()
+	lstDO = ToList[do](lstAny)
 
 	assert.Equal(t, lstAny.Count(), lstDO.Count())
 
 	for i := 0; i < lstAny.Count(); i++ {
 		po := lstAny.Index(i).(po)
-
 		assert.Equal(t, po.Name, lstDO.Index(i).Name)
 		assert.Equal(t, po.Age, lstDO.Index(i).Age)
+	}
+
+	arr := lst.ToArray()
+	lstDO = ToList[do](arr)
+
+	assert.Equal(t, len(arr), lstDO.Count())
+
+	for i := 0; i < lstAny.Count(); i++ {
+		assert.Equal(t, arr[i].Name, lstDO.Index(i).Name)
+		assert.Equal(t, arr[i].Age, lstDO.Index(i).Age)
 	}
 }
 

@@ -7,7 +7,7 @@
         * Array （数组转换）
         * Single （单个转换）
         * ToPageList （转换成core.PageList）
-        * ToList （ListAny转List泛型）
+        * ToList （ListAny、List[xx]、[]xx转List[yy]）
         * ToListAny （切片、List转ToListAny）
 
 ## Getting Started
@@ -22,35 +22,41 @@ type do struct {
 }
 ```
 ### Array
-slice struct mapTo slice struct
+`slice` mapTo `slice`
 ```go
 arrPO := []PO{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
 mapper.Array[DO](arrPO)       // return []DO{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
 ```
 
 ### Single
-struct mapTo struct
+`struct` mapTo `struct`
 ```go
 poSingle := po{Name: "steden", Age: 18}
 mapper.Single[do](&poSingle)   // return do{Name: "steden", Age: 18}
 ```
 
 ### ToPageList
-slice struct mapTo collections.PageList
+`slice` mapTo `collections.PageList`
 ```go
 arrPO := []po{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
 mapper.ToPageList[po](arrPO, 10) // return collections.PageList[do]
 ```
 
 ### ToList
-collections.ListAny mapTo collections.List
+`ListAny、List[xx]、[]xx` mapTo `List[yy]`
 ```go
-lstAny := collections.NewListAny(po{Name: "steden", Age: 18}, po{Name: "steden1", Age: 20})
+lst := collections.NewList(po{Name: "steden", Age: 18}, po{Name: "steden1", Age: 20})
+mapper.ToList[do](lst)         // return collections.List[do]
+
+lstAny := lst.ToListAny()
 mapper.ToList[do](lstAny)      // return collections.List[do]
+
+arr := lst.ToArray()
+mapper.ToList[do](arr)         // return collections.List[do]
 ```
 
 ### ToListAny
-slice mapTo collections.ListAny
+`slice` mapTo `collections.ListAny`
 ```go
 arrPO := []po{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
 mapper.ToListAny(arrPO)     // return collections.ListAny
