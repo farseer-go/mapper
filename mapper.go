@@ -47,14 +47,8 @@ func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
 
 	// List类型、ListAny类型
 	if strings.HasPrefix(sliceOrListOrListAnyType.String(), "collections.List[") || strings.HasPrefix(sliceOrListOrListAnyType.String(), "collections.ListAny") {
-		arrValue := sliceOrListOrListAnyValue.MethodByName("ToArray").Call(nil)[0]
 		var arr []TEntity
-		var items []any
-		for i := 0; i < arrValue.Len(); i++ {
-			item := arrValue.Index(i).Interface()
-			items = append(items, item)
-		}
-
+		items := collections.ReflectToArray(sliceOrListOrListAnyValue)
 		_ = mapper.MapperSlice(items, &arr)
 		return collections.NewList[TEntity](arr...)
 	}
@@ -69,9 +63,9 @@ func ToListAny(sliceOrList any) collections.ListAny {
 	}
 	sliceOrListType := sliceOrListVal.Type()
 
-	lst := collections.NewListAny()
 	// 切片类型
 	if sliceOrListVal.Kind() == reflect.Slice || sliceOrListVal.Kind() == reflect.Array {
+		lst := collections.NewListAny()
 		for i := 0; i < sliceOrListVal.Len(); i++ {
 			itemValue := sliceOrListVal.Index(i).Interface()
 			lst.Add(itemValue)
@@ -79,11 +73,8 @@ func ToListAny(sliceOrList any) collections.ListAny {
 		return lst
 	}
 	if strings.HasPrefix(sliceOrListType.String(), "collections.List[") {
-		arrValue := sliceOrListVal.MethodByName("ToArray").Call(nil)[0]
-		for i := 0; i < arrValue.Len(); i++ {
-			lst.Add(arrValue.Index(i).Interface())
-		}
-		return lst
+		arr := collections.ReflectToArray(sliceOrListVal)
+		return collections.NewListAny(arr...)
 	}
 	panic("sliceOrList入参必须为切片或collections.List集合")
 }
