@@ -40,7 +40,7 @@ mapper.Single[do](&poSingle)   // return do{Name: "steden", Age: 18}
 `struct` mapTo `map`
 ```go
 arrPO := po{Name: "steden", Age: 18}
-ToMap[string, any](&arrPO)  // return map["Name"] = "steden", map["Age"] = 18
+mapper.ToMap[string, any](&arrPO)  // return map["Name"] = "steden", map["Age"] = 18
 ```
 
 ### ToPageList
