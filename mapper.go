@@ -23,6 +23,14 @@ func Single[TEntity any](fromObjPtr any) TEntity {
 	return toObj
 }
 
+// ToMap 结构体转Map
+// fromObjPtr=struct的指针
+func ToMap[K comparable, V any](fromObjPtr any) map[K]V {
+	dic := make(map[K]V)
+	_ = mapper.Mapper(fromObjPtr, &dic)
+	return dic
+}
+
 // ToPageList 转换成core.PageList
 // fromSlice=数组切片
 func ToPageList[TEntity any](fromSlice any, recordCount int64) collections.PageList[TEntity] {

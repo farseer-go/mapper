@@ -104,3 +104,10 @@ func TestToListAny(t *testing.T) {
 		assert.Equal(t, po.Age, arrPO[i].Age)
 	}
 }
+
+func TestToMap(t *testing.T) {
+	arrPO := po{Name: "steden", Age: 18}
+	dic := ToMap[string, any](&arrPO)
+	assert.Equal(t, "steden", dic["Name"])
+	assert.Equal(t, 18, dic["Age"])
+}

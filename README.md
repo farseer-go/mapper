@@ -9,6 +9,7 @@
         * ToPageList （转换成core.PageList）
         * ToList （ListAny、List[xx]、[]xx转List[yy]）
         * ToListAny （切片、List转ToListAny）
+        * ToMap （结构体转Map）
 
 ## Getting Started
 ```go
@@ -33,6 +34,13 @@ mapper.Array[DO](arrPO)       // return []DO{{Name: "steden", Age: 18}, {Name: "
 ```go
 poSingle := po{Name: "steden", Age: 18}
 mapper.Single[do](&poSingle)   // return do{Name: "steden", Age: 18}
+```
+
+### ToMap
+`struct` mapTo `map`
+```go
+arrPO := po{Name: "steden", Age: 18}
+ToMap[string, any](&arrPO)  // return map["Name"] = "steden", map["Age"] = 18
 ```
 
 ### ToPageList
