@@ -33,9 +33,9 @@ func ToMap[K comparable, V any](fromObjPtr any) map[K]V {
 
 // ToPageList 转换成core.PageList
 // fromSlice=数组切片
-func ToPageList[TEntity any](fromSlice any, recordCount int64) collections.PageList[TEntity] {
-	arr := Array[TEntity](fromSlice)
-	return collections.NewPageList(collections.NewList(arr...), recordCount)
+func ToPageList[TEntity any](sliceOrListOrListAny any, recordCount int64) collections.PageList[TEntity] {
+	lst := ToList[TEntity](sliceOrListOrListAny)
+	return collections.NewPageList(lst, recordCount)
 }
 
 // ToList 支持：ListAny、List[xx]、[]xx转List[yy]
