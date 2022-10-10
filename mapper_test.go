@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"fmt"
 	"github.com/farseer-go/collections"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -13,6 +14,59 @@ type po struct {
 type do struct {
 	Name string
 	Age  int
+}
+type State int
+
+const (
+	Running State = iota
+	Pending
+	Stopped
+)
+
+func (s State) String() string {
+	switch s {
+	case Running:
+		return "Running"
+	case Pending:
+		return "Pending"
+	case Stopped:
+		return "Stopped"
+	default:
+		return "Unknown"
+	}
+}
+
+type TaskDO struct {
+	Data   collections.Dictionary[string, string]
+	Id     int
+	Client ClientVO
+	Status State
+}
+type ClientVO struct {
+	Id   int64
+	Ip   string
+	Name string
+}
+type TaskDTO struct {
+	Id         int
+	ClientId   int64
+	ClientIp   string
+	ClientName string
+	Status     State
+	Data       collections.Dictionary[string, string]
+}
+
+func TestMapperSingle(t *testing.T) {
+	maps := make(map[string]string)
+	maps["name"] = "steden"
+	maps["age"] = "18"
+	dic := collections.NewDictionaryFromMap(maps)
+	dic.Add("name2", "harlen")
+	arrDO := TaskDO{Id: 1, Client: ClientVO{Id: 2, Ip: "127.0.0.1", Name: "电脑"}, Status: Pending, Data: dic}
+	arrDTO := TaskDTO{}
+	err := MapDOtoDTO(&arrDO, &arrDTO)
+	fmt.Println(arrDTO)
+	println(err)
 }
 
 func TestArray(t *testing.T) {

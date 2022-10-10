@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"fmt"
 	"github.com/devfeel/mapper"
 	"github.com/farseer-go/collections"
 	"reflect"
@@ -13,6 +14,74 @@ func Array[T any](fromSlice any) []T {
 	var toSlice []T
 	_ = mapper.MapperSlice(fromSlice, &toSlice)
 	return toSlice
+}
+
+// 单例实现相互转换
+func MapDOtoDTO(fromDO, toDTO interface{}) error {
+	// 参数校验
+	fs := reflect.TypeOf(fromDO)
+	if fs.Kind() != reflect.Ptr {
+		return fmt.Errorf("fromDO must be a struct pointer")
+	}
+	ts := reflect.TypeOf(toDTO)
+	if ts.Kind() != reflect.Ptr {
+		return fmt.Errorf("toDTO must be a struct pointer")
+	}
+	fsVal := reflect.ValueOf(fromDO).Elem()
+	objMap := make(map[string]interface{})
+	// 切片类型
+	for i := 0; i < fsVal.NumField(); i++ {
+		itemType := fsVal.Field(i).Type()
+		if itemType.Kind() == reflect.Struct {
+			mapRecursion(fsVal.Type().Field(i).Name, fsVal.Field(i), fsVal.Type().Field(i).Type, objMap)
+		} else {
+			itemName := fsVal.Type().Field(i).Name
+			itemValue := fsVal.Field(i).Interface()
+			objMap[itemName] = itemValue
+		}
+	}
+	//赋值toStruct
+	//tsObjMap := reflect.ValueOf(objMap)
+	tsVal := reflect.ValueOf(toDTO).Elem()
+	for i := 0; i < tsVal.NumField(); i++ {
+		// 在源结构体中查询有数据结构体中相同属性和类型的字段，有则修改其值
+		// name := sTypeOfT.Field(i).Name
+		f := tsVal.Type().Field(i)
+		name := f.Name
+		objVal := objMap[name]
+		if objVal == nil {
+			continue
+		}
+		objType := reflect.TypeOf(objVal)
+		//fmt.Println(f.Type.Kind(), objType.Kind())
+		if f.Type.Kind() == objType.Kind() {
+			tsVal.Field(i).Set(reflect.ValueOf(objVal))
+		}
+	}
+	//fmt.Println(objMap)
+	return nil
+}
+func mapRecursion(fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]interface{}) {
+	for i := 0; i < fromStructVal.NumField(); i++ {
+		itemType := fromStructVal.Field(i).Type()
+		if itemType.Kind() == reflect.Struct {
+			mapRecursion(fromStructType.Field(i).Name, fromStructVal.Field(i), fromStructType.Field(i).Type, objMap)
+		} else if itemType.Kind() == reflect.Map {
+			newMaps := make(map[string]string)
+			maps := fromStructVal.Field(i).MapRange()
+			for maps.Next() {
+				str := fmt.Sprintf("%v=%v", maps.Key(), maps.Value())
+				array := strings.Split(str, "=")
+				newMaps[array[0]] = array[1]
+			}
+			dic := collections.NewDictionaryFromMap(newMaps)
+			objMap[fieldName] = dic
+		} else {
+			itemName := fieldName + fromStructType.Field(i).Name
+			itemValue := fromStructVal.Field(i).Interface()
+			objMap[itemName] = itemValue
+		}
+	}
 }
 
 // Single 单个转换
