@@ -17,7 +17,7 @@ func Array[T any](fromSlice any) []T {
 }
 
 // 单例实现相互转换
-func MapDOtoDTO(fromDO, toDTO interface{}) error {
+func MapDOtoDTO(fromDO, toDTO any) error {
 	// 参数校验
 	fs := reflect.TypeOf(fromDO)
 	if fs.Kind() != reflect.Ptr {

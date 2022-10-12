@@ -15,46 +15,6 @@ type do struct {
 	Name string
 	Age  int
 }
-type State int
-
-const (
-	Running State = iota
-	Pending
-	Stopped
-)
-
-func (s State) String() string {
-	switch s {
-	case Running:
-		return "Running"
-	case Pending:
-		return "Pending"
-	case Stopped:
-		return "Stopped"
-	default:
-		return "Unknown"
-	}
-}
-
-type TaskDO struct {
-	Data   collections.Dictionary[string, string]
-	Id     int
-	Client ClientVO
-	Status State
-}
-type ClientVO struct {
-	Id   int64
-	Ip   string
-	Name string
-}
-type TaskDTO struct {
-	Id         int
-	ClientId   int64
-	ClientIp   string
-	ClientName string
-	Status     State
-	Data       collections.Dictionary[string, string]
-}
 
 func TestMapperSingle(t *testing.T) {
 	maps := make(map[string]string)
