@@ -18,15 +18,19 @@ type do struct {
 
 func TestMapperSingle(t *testing.T) {
 	maps := make(map[string]string)
-	maps["name"] = "steden"
-	maps["age"] = "18"
+	maps["Name"] = "steden"
+	maps["Age"] = "18"
 	dic := collections.NewDictionaryFromMap(maps)
 	dic.Add("name2", "harlen")
-	arrDO := TaskDO{Id: 1, Client: ClientVO{Id: 2, Ip: "127.0.0.1", Name: "电脑"}, Status: Pending, Data: dic}
-	arrDTO := TaskDTO{}
-	err := MapDOtoDTO(&arrDO, &arrDTO)
+	//arrDO := TaskDO{Id: 1, Client: ClientVO{Id: 2, Ip: "127.0.0.1", Name: "电脑"}, Status: Pending, Data: dic}
+	//arrDTO := TaskDTO{}
+	//AutoMapper(&arrDO, &arrDTO)
+
+	arrDO := TaskDO{}
+	arrDTO := TaskDTO{Id: 1, ClientId: 2, ClientIp: "127.0.0.1", ClientName: "电脑", Status: Pending, User: UserVO{}, Data: dic}
+	AutoMapper(&arrDTO, &arrDO)
+	fmt.Println(arrDO)
 	fmt.Println(arrDTO)
-	println(err)
 }
 
 func TestArray(t *testing.T) {
