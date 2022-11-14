@@ -41,20 +41,20 @@ func setStructVal(objMap map[string]interface{}, tsVal *reflect.Value, pre strin
 		cv := tsVal.Field(i)
 		var objVal any
 		objVal = objMap[name]
-		objType := reflect.TypeOf(objVal)
-		if objVal != nil && tsVal.Field(i).Kind() == reflect.Struct && objType.Kind() == reflect.Map {
-			//dic := collections.NewDictionaryFromMap(objVal.(map[string]interface{}))
-			//tsVal.Field(i).Set(reflect.ValueOf(dic))
+		//fmt.Println(name)
+		if objVal == nil && tsVal.Field(i).Kind() == reflect.Struct {
+			setStructVal(objMap, &cv, name)
 			continue
+		} else if objVal == nil {
+			continue
+		}
+		objType := reflect.TypeOf(objVal)
+		//fmt.Println(name, f.Type.Kind(), objType.Kind(), objVal)
+		if f.Type.Kind() == objType.Kind() {
+			tsVal.Field(i).Set(reflect.ValueOf(objVal))
 		} else if tsVal.Field(i).Kind() == reflect.Struct {
 			setStructVal(objMap, &cv, name)
 			continue
-		}
-		if objVal == nil {
-			continue
-		}
-		if f.Type.Kind() == objType.Kind() {
-			tsVal.Field(i).Set(reflect.ValueOf(objVal))
 		}
 	}
 }
@@ -72,6 +72,7 @@ func structToMap(obj reflect.Value, name string) map[string]any {
 	case reflect.Struct:
 		for i := 0; i < obj.NumField(); i++ {
 			f := obj.Field(i)
+			prename := name
 			name := name + obj.Type().Field(i).Name
 			if f.Kind() == reflect.Struct || f.Kind() == reflect.Ptr {
 				cMap := structToMap(f, name)
@@ -83,14 +84,24 @@ func structToMap(obj reflect.Value, name string) map[string]any {
 				if f.CanInterface() {
 					objMap[name] = f.Interface()
 				} else if f.Kind() == reflect.Map {
-					m := make(map[any]any)
-					iter := f.MapRange()
-					for iter.Next() {
-						k := iter.Key()
-						v := iter.Value()
-						m[k] = v
+
+					newMaps := make(map[string]string)
+					maps := f.MapRange()
+					for maps.Next() {
+						str := fmt.Sprintf("%v=%v", maps.Key(), maps.Value())
+						array := strings.Split(str, "=")
+						newMaps[array[0]] = array[1]
 					}
-					objMap[name] = m
+					dic := collections.NewDictionaryFromMap(newMaps)
+					objMap[prename] = dic
+					//m := make(map[any]any)
+					//iter := f.MapRange()
+					//for iter.Next() {
+					//	k := iter.Key()
+					//	v := iter.Value()
+					//	m[k] = v
+					//}
+					//objMap[name] = m
 				}
 			}
 		}
@@ -168,6 +179,7 @@ func MapDTOtoDO(fromDTO, toDO any) error {
 			objMap[itemName] = itemValue
 		}
 	}
+	fmt.Println(objMap)
 	//赋值toStruct
 	//tsObjMap := reflect.ValueOf(objMap)
 	tsVal := reflect.ValueOf(toDO).Elem()
