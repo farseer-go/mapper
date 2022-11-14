@@ -16,6 +16,17 @@ func Array[T any](fromSlice any) []T {
 	return toSlice
 }
 
+// 数组转换
+func ArrayDOtoDTO[T any](fromDO any) []T {
+	var toDTO []T
+
+	fs := reflect.TypeOf(fromDO)
+	for i := 0; i < fs.Len(); i++ {
+		item := fs.i
+	}
+	return toDTO
+}
+
 // 单例实现相互转换
 func MapDOtoDTO(fromDO, toDTO interface{}) error {
 	// 参数校验

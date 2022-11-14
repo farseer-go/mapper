@@ -56,7 +56,7 @@ type TaskDTO struct {
 	Data       collections.Dictionary[string, string]
 }
 
-func TestMapperSingle(t *testing.T) {
+func TestMapDOtoDTO(t *testing.T) {
 	maps := make(map[string]string)
 	maps["name"] = "steden"
 	maps["age"] = "18"
@@ -67,6 +67,19 @@ func TestMapperSingle(t *testing.T) {
 	err := MapDOtoDTO(&arrDO, &arrDTO)
 	fmt.Println(arrDTO)
 	println(err)
+}
+
+func TestMapperSingle(t *testing.T) {
+	maps := make(map[string]string)
+	maps["name"] = "steden"
+	maps["age"] = "18"
+	dic := collections.NewDictionaryFromMap(maps)
+	dic.Add("name2", "harlen")
+	var arrDO []TaskDO
+	var arrDTO []TaskDTO
+	arrDO = append(arrDO, TaskDO{Id: 1, Client: ClientVO{Id: 2, Ip: "127.0.0.1", Name: "电脑"}, Status: Pending, Data: dic})
+	ArrayDOtoDTO(&arrDO, &arrDTO)
+	fmt.Println(arrDTO)
 }
 
 func TestArray(t *testing.T) {
