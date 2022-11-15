@@ -86,31 +86,31 @@ func TestAutoMapper(t *testing.T) {
 		assert.Equal(t, dto.Data.GetValue("price"), do.Data.GetValue("price"))
 	})
 
-	//t.Run("do转dto", func(t *testing.T) {
-	//	do := TaskDO{
-	//		Id: 1,
-	//		Client: ClientVO{
-	//			Id:   2,
-	//			Ip:   "192.168.1.1",
-	//			Name: "node2",
-	//		},
-	//		Status:   Stopped,
-	//		UserId:   666,
-	//		UserName: "harlen",
-	//		Data:     collections.NewDictionaryFromMap(map[string]string{"age": "16", "price": "888.88"}),
-	//	}
-	//	var dto TaskDTO
-	//	_ = MapDOtoDTO(do, &dto)
-	//
-	//	assert.Equal(t, do.Id, dto.Id)
-	//	assert.Equal(t, do.Client.Id, dto.ClientId)
-	//	assert.Equal(t, do.Client.Ip, dto.ClientIp)
-	//	assert.Equal(t, do.Client.Name, dto.ClientName)
-	//	assert.Equal(t, do.Status, dto.Status)
-	//	assert.Equal(t, do.UserId, dto.User.Id)
-	//	assert.Equal(t, do.UserName, dto.User.Name)
-	//	assert.Equal(t, do.Data.Count(), dto.Data.Count())
-	//	assert.Equal(t, do.Data.GetValue("age"), dto.Data.GetValue("age"))
-	//	assert.Equal(t, do.Data.GetValue("price"), dto.Data.GetValue("price"))
-	//})
+	t.Run("do转dto", func(t *testing.T) {
+		do := TaskDO{
+			Id: 1,
+			Client: ClientVO{
+				Id:   2,
+				Ip:   "192.168.1.1",
+				Name: "node2",
+			},
+			Status:   Stopped,
+			UserId:   666,
+			UserName: "harlen",
+			Data:     collections.NewDictionaryFromMap(map[string]string{"age": "16", "price": "888.88"}),
+		}
+		var dto TaskDTO
+		_ = MapDOtoDTO(do, &dto)
+
+		assert.Equal(t, do.Id, dto.Id)
+		assert.Equal(t, do.Client.Id, dto.ClientId)
+		assert.Equal(t, do.Client.Ip, dto.ClientIp)
+		assert.Equal(t, do.Client.Name, dto.ClientName)
+		assert.Equal(t, do.Status, dto.Status)
+		assert.Equal(t, do.UserId, dto.User.Id)
+		assert.Equal(t, do.UserName, dto.User.Name)
+		assert.Equal(t, do.Data.Count(), dto.Data.Count())
+		assert.Equal(t, do.Data.GetValue("age"), dto.Data.GetValue("age"))
+		assert.Equal(t, do.Data.GetValue("price"), dto.Data.GetValue("price"))
+	})
 }
