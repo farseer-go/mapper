@@ -52,20 +52,20 @@ func setStructVal(objMap map[string]interface{}, tsVal *reflect.Value, pre strin
 		cv := tsVal.Field(i)
 		var objVal any
 		objVal = objMap[name]
-		objType := reflect.TypeOf(objVal)
-		if objVal != nil && tsVal.Field(i).Kind() == reflect.Struct && objType.Kind() == reflect.Map {
-			//dic := collections.NewDictionaryFromMap(objVal.(map[string]interface{}))
-			//tsVal.Field(i).Set(reflect.ValueOf(dic))
+		//fmt.Println(name)
+		if objVal == nil && tsVal.Field(i).Kind() == reflect.Struct {
+			setStructVal(objMap, &cv, name)
 			continue
+		} else if objVal == nil {
+			continue
+		}
+		objType := reflect.TypeOf(objVal)
+		//fmt.Println(name, f.Type.Kind(), objType.Kind(), objVal)
+		if f.Type.Kind() == objType.Kind() {
+			tsVal.Field(i).Set(reflect.ValueOf(objVal))
 		} else if tsVal.Field(i).Kind() == reflect.Struct {
 			setStructVal(objMap, &cv, name)
 			continue
-		}
-		if objVal == nil {
-			continue
-		}
-		if f.Type.Kind() == objType.Kind() {
-			tsVal.Field(i).Set(reflect.ValueOf(objVal))
 		}
 	}
 }
@@ -83,6 +83,7 @@ func structToMap(obj reflect.Value, name string) map[string]any {
 	case reflect.Struct:
 		for i := 0; i < obj.NumField(); i++ {
 			f := obj.Field(i)
+			prename := name
 			name := name + obj.Type().Field(i).Name
 			if f.Kind() == reflect.Struct || f.Kind() == reflect.Ptr {
 				cMap := structToMap(f, name)
@@ -94,14 +95,24 @@ func structToMap(obj reflect.Value, name string) map[string]any {
 				if f.CanInterface() {
 					objMap[name] = f.Interface()
 				} else if f.Kind() == reflect.Map {
-					m := make(map[any]any)
-					iter := f.MapRange()
-					for iter.Next() {
-						k := iter.Key()
-						v := iter.Value()
-						m[k] = v
+
+					newMaps := make(map[string]string)
+					maps := f.MapRange()
+					for maps.Next() {
+						str := fmt.Sprintf("%v=%v", maps.Key(), maps.Value())
+						array := strings.Split(str, "=")
+						newMaps[array[0]] = array[1]
 					}
-					objMap[name] = m
+					dic := collections.NewDictionaryFromMap(newMaps)
+					objMap[prename] = dic
+					//m := make(map[any]any)
+					//iter := f.MapRange()
+					//for iter.Next() {
+					//	k := iter.Key()
+					//	v := iter.Value()
+					//	m[k] = v
+					//}
+					//objMap[name] = m
 				}
 			}
 		}
@@ -225,6 +236,53 @@ func MapDOtoDTO(from, to any) error {
 			}
 		}
 
+	}
+	//fmt.Println(objMap)
+	return nil
+}
+
+// 单例实现相互转换
+func MapDTOtoDO(fromDTO, toDO any) error {
+	// 参数校验
+	fs := reflect.TypeOf(fromDTO)
+	if fs.Kind() != reflect.Ptr {
+		return fmt.Errorf("fromDTO must be a struct pointer")
+	}
+	ts := reflect.TypeOf(toDO)
+	if ts.Kind() != reflect.Ptr {
+		return fmt.Errorf("toDO must be a struct pointer")
+	}
+	fsVal := reflect.ValueOf(fromDTO).Elem()
+	objMap := make(map[string]interface{})
+	// 切片类型
+	for i := 0; i < fsVal.NumField(); i++ {
+		itemType := fsVal.Field(i).Type()
+		if itemType.Kind() == reflect.Struct {
+			mapRecursion(fsVal.Type().Field(i).Name, fsVal.Field(i), fsVal.Type().Field(i).Type, objMap)
+		} else {
+			itemName := fsVal.Type().Field(i).Name
+			itemValue := fsVal.Field(i).Interface()
+			objMap[itemName] = itemValue
+		}
+	}
+	fmt.Println(objMap)
+	//赋值toStruct
+	//tsObjMap := reflect.ValueOf(objMap)
+	tsVal := reflect.ValueOf(toDO).Elem()
+	for i := 0; i < tsVal.NumField(); i++ {
+		// 在源结构体中查询有数据结构体中相同属性和类型的字段，有则修改其值
+		// name := sTypeOfT.Field(i).Name
+		f := tsVal.Type().Field(i)
+		name := f.Name
+		objVal := objMap[name]
+		if objVal == nil {
+			continue
+		}
+		objType := reflect.TypeOf(objVal)
+		//fmt.Println(f.Type.Kind(), objType.Kind())
+		if f.Type.Kind() == objType.Kind() {
+			tsVal.Field(i).Set(reflect.ValueOf(objVal))
+		}
 	}
 	//fmt.Println(objMap)
 	return nil
