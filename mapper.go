@@ -17,7 +17,7 @@ func Array[T any](fromSlice any) []T {
 		item := sliArray.Index(i)
 		var tInfo T
 		_ = Auto(item.Interface(), &tInfo)
-		fmt.Println(item)
+		//fmt.Println(item)
 		toSlice = append(toSlice, tInfo)
 	}
 	return toSlice
