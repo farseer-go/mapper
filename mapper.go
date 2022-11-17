@@ -12,20 +12,17 @@ import (
 // fromSlice=数组切片
 func Array[T any](fromSlice any) []T {
 	var toSlice []T
-	_ = mapper.MapperSlice(fromSlice, &toSlice)
+	sliArray := reflect.ValueOf(&fromSlice).Elem().Elem()
+	for i := 0; i < sliArray.Len(); i++ {
+		item := sliArray.Index(i)
+		var tInfo T
+		_ = Auto(item.Interface(), &tInfo)
+		fmt.Println(item)
+		toSlice = append(toSlice, tInfo)
+	}
 	return toSlice
 }
 
-// 数组转换
-func ArrayDOtoDTO[T any](fromDO any) []T {
-	var toDTO []T
-
-	//fs := reflect.TypeOf(fromDO)
-	//for i := 0; i < fs.Len(); i++ {
-	//	item := fs.i
-	//}
-	return toDTO
-}
 func AutoMapper(fromDO, toDTO any) error {
 	fs := reflect.TypeOf(fromDO)
 	if fs.Kind() != reflect.Ptr {
