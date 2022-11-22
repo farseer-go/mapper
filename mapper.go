@@ -12,12 +12,12 @@ import (
 // fromSlice=数组切片
 func Array[T any](fromSlice any) []T {
 	var toSlice []T
-	sliArray := reflect.ValueOf(&fromSlice).Elem().Elem()
+	//获取到具体的值信息
+	sliArray := reflect.Indirect(reflect.ValueOf(fromSlice))
 	for i := 0; i < sliArray.Len(); i++ {
 		item := sliArray.Index(i)
 		var tInfo T
 		_ = Auto(item.Interface(), &tInfo)
-		//fmt.Println(item)
 		toSlice = append(toSlice, tInfo)
 	}
 	return toSlice
