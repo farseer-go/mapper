@@ -35,10 +35,7 @@ func Auto(from, to any) error {
 		if item.Kind() == reflect.Struct {
 			f := tsVal.Type().Field(i)
 			var structObj = tsVal.Field(i)
-			_, isList := types.IsList(structObj)
-			_, isPageList := types.IsPageList(structObj)
-			_, isDic := types.IsDictionary(structObj)
-			if isList || isPageList || isDic {
+			if types.IsCollections(structObj.Type()) {
 				f := tsVal.Type().Field(i)
 				name := f.Name
 				objVal := objMap[name]
