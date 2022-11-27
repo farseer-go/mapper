@@ -8,33 +8,41 @@ import (
 	"strings"
 )
 
-// 单例实现相互转换
+// 对象相互转换
 func Auto(from, to any) error {
 	ts := reflect.TypeOf(to)
+	//判断是否指针
 	if ts.Kind() != reflect.Ptr {
 		return fmt.Errorf("toDTO must be a struct pointer")
 	}
+	//反射来源对象
 	fsVal := reflect.ValueOf(from)
+	//定义存储map ,保存解析出来的字段和值
 	objMap := make(map[string]any)
-	// 切片类型
+	// 遍历来源对象
 	for i := 0; i < fsVal.NumField(); i++ {
 		itemType := fsVal.Field(i).Type()
+		//结构体遍历
 		if itemType.Kind() == reflect.Struct {
 			mapRecursion(fsVal.Type().Field(i).Name, fsVal.Field(i), fsVal.Type().Field(i).Type, objMap)
 		} else {
+			//非结构体遍历
 			itemName := fsVal.Type().Field(i).Name
 			itemValue := fsVal.Field(i).Interface()
 			objMap[itemName] = itemValue
 		}
 	}
-	//赋值toStruct
+	//转换对象赋值操作
+	//反射转换对象 to 指针使用Elem 获取具体值
 	tsVal := reflect.ValueOf(to).Elem()
 	for i := 0; i < tsVal.NumField(); i++ {
-		// 在源结构体中查询有数据结构体中相同属性和类型的字段，有则修改其值
+		//获取单个字段类型
 		item := tsVal.Field(i).Type()
+		//结构体赋值
 		if item.Kind() == reflect.Struct {
 			f := tsVal.Type().Field(i)
 			var structObj = tsVal.Field(i)
+			//list ,pagelist ,dic 转换 ，直接赋值
 			if types.IsCollections(structObj.Type()) {
 				f := tsVal.Type().Field(i)
 				name := f.Name
@@ -43,11 +51,11 @@ func Auto(from, to any) error {
 					continue
 				}
 				objType := reflect.TypeOf(objVal)
-				//fmt.Println(f.Type.Kind(), objType.Kind())
 				if f.Type.String() == objType.String() {
 					tsVal.Field(i).Set(reflect.ValueOf(objVal))
 				}
 			} else {
+				//结构内字段转换 赋值
 				for j := 0; j < structObj.NumField(); j++ {
 					itemType := structObj.Field(j).Type()
 					name := f.Name + f.Type.Field(j).Name
@@ -63,6 +71,7 @@ func Auto(from, to any) error {
 				}
 			}
 		} else {
+			//正常字段转换
 			f := tsVal.Type().Field(i)
 			name := f.Name
 			objVal := objMap[name]
@@ -80,6 +89,8 @@ func Auto(from, to any) error {
 	//fmt.Println(objMap)
 	return nil
 }
+
+// 结构体递归取值
 func mapRecursion(fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]interface{}) {
 	for i := 0; i < fromStructVal.NumField(); i++ {
 		itemType := fromStructVal.Field(i).Type()

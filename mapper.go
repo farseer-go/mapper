@@ -12,20 +12,17 @@ import (
 // fromSlice=数组切片
 func Array[T any](fromSlice any) []T {
 	var toSlice []T
-	_ = mapper.MapperSlice(fromSlice, &toSlice)
+	//获取到具体的值信息
+	sliArray := reflect.Indirect(reflect.ValueOf(fromSlice))
+	for i := 0; i < sliArray.Len(); i++ {
+		item := sliArray.Index(i)
+		var tInfo T
+		_ = Auto(item.Interface(), &tInfo)
+		toSlice = append(toSlice, tInfo)
+	}
 	return toSlice
 }
 
-// 数组转换
-func ArrayDOtoDTO[T any](fromDO any) []T {
-	var toDTO []T
-
-	//fs := reflect.TypeOf(fromDO)
-	//for i := 0; i < fs.Len(); i++ {
-	//	item := fs.i
-	//}
-	return toDTO
-}
 func AutoMapper(fromDO, toDTO any) error {
 	fs := reflect.TypeOf(fromDO)
 	if fs.Kind() != reflect.Ptr {
@@ -152,16 +149,18 @@ func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
 
 	// 切片类型
 	if sliceOrListOrListAnyValue.Kind() == reflect.Slice {
-		var arr []TEntity
-		_ = mapper.MapperSlice(sliceOrListOrListAny, &arr)
+		//var arr []TEntity
+		arr := Array[TEntity](sliceOrListOrListAny)
+		//_ = mapper.MapperSlice(sliceOrListOrListAny, &arr)
 		return collections.NewList[TEntity](arr...)
 	}
 
 	// List类型、ListAny类型
 	if strings.HasPrefix(sliceOrListOrListAnyType.String(), "collections.List[") || strings.HasPrefix(sliceOrListOrListAnyType.String(), "collections.ListAny") {
-		var arr []TEntity
+		//var arr []TEntity
 		items := collections.ReflectToArray(sliceOrListOrListAnyValue)
-		_ = mapper.MapperSlice(items, &arr)
+		arr := Array[TEntity](items)
+		//_ = mapper.MapperSlice(items, &arr)
 		return collections.NewList[TEntity](arr...)
 	}
 	panic("sliceOrListOrListAny入参必须为切片或collections.List、collections.ListAny集合")

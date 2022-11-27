@@ -73,7 +73,7 @@ func TestAutoMapper(t *testing.T) {
 		}
 
 		var do TaskDO
-		_ = MapDOtoDTO(dto, &do)
+		_ = Auto(dto, &do)
 		assert.Equal(t, dto.Id, do.Id)
 		assert.Equal(t, dto.ClientId, do.Client.Id)
 		assert.Equal(t, dto.ClientIp, do.Client.Ip)
@@ -100,7 +100,7 @@ func TestAutoMapper(t *testing.T) {
 			Data:     collections.NewDictionaryFromMap(map[string]string{"age": "16", "price": "888.88"}),
 		}
 		var dto TaskDTO
-		_ = MapDOtoDTO(do, &dto)
+		_ = Auto(do, &dto)
 
 		assert.Equal(t, do.Id, dto.Id)
 		assert.Equal(t, do.Client.Id, dto.ClientId)
