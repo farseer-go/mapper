@@ -114,3 +114,18 @@ func mapRecursion(fieldName string, fromStructVal reflect.Value, fromStructType 
 		}
 	}
 }
+
+// 结构转map
+func StructToMap(fromObjPtr any, dic any) error {
+	ts := reflect.TypeOf(fromObjPtr)
+	if ts.Kind() != reflect.Ptr {
+		return fmt.Errorf("toDTO must be a struct pointer")
+	}
+	fsVal := reflect.ValueOf(fromObjPtr).Elem()
+	for i := 0; i < fsVal.NumField(); i++ {
+		itemName := fsVal.Type().Field(i).Name
+		itemValue := fsVal.Field(i)
+		reflect.ValueOf(dic).SetMapIndex(reflect.ValueOf(itemName), itemValue)
+	}
+	return nil
+}

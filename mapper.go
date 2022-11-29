@@ -2,7 +2,6 @@ package mapper
 
 import (
 	"fmt"
-	"github.com/devfeel/mapper"
 	"github.com/farseer-go/collections"
 	"reflect"
 	"strings"
@@ -128,7 +127,7 @@ func Single[TEntity any](fromObjPtr any) TEntity {
 // fromObjPtr=struct的指针
 func ToMap[K comparable, V any](fromObjPtr any) map[K]V {
 	dic := make(map[K]V)
-	_ = mapper.Mapper(fromObjPtr, &dic)
+	_ = StructToMap(fromObjPtr, dic)
 	return dic
 }
 
