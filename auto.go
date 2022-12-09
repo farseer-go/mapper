@@ -15,21 +15,22 @@ func Auto(from, to any) error {
 	if ts.Kind() != reflect.Ptr {
 		return fmt.Errorf("toDTO must be a struct pointer")
 	}
-	//反射来源对象
-	fsVal := reflect.ValueOf(from)
-	//定义存储map ,保存解析出来的字段和值
+	// 反射来源对象
+	fsVal := reflect.Indirect(reflect.ValueOf(from))
+	// 定义存储map ,保存解析出来的字段和值
 	objMap := make(map[string]any)
 	// 遍历来源对象
 	for i := 0; i < fsVal.NumField(); i++ {
 		itemType := fsVal.Field(i).Type()
-		//结构体遍历
-		if itemType.Kind() == reflect.Struct {
-			mapRecursion(fsVal.Type().Field(i).Name, fsVal.Field(i), fsVal.Type().Field(i).Type, objMap)
+		fieldName := fsVal.Type().Field(i).Name
+
+		// 结构体遍历
+		if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) {
+			mapRecursion(fieldName, fsVal.Field(i), fsVal.Type().Field(i).Type, objMap)
 		} else {
-			//非结构体遍历
-			itemName := fsVal.Type().Field(i).Name
+			// 非结构体遍历
 			itemValue := fsVal.Field(i).Interface()
-			objMap[itemName] = itemValue
+			objMap[fieldName] = itemValue
 		}
 	}
 	//转换对象赋值操作
@@ -64,7 +65,6 @@ func Auto(from, to any) error {
 						continue
 					}
 					objType := reflect.TypeOf(objVal)
-					//fmt.Println(f.Type.Kind(), objType.Kind())
 					if itemType.Kind() == objType.Kind() {
 						tsVal.Field(i).Field(j).Set(reflect.ValueOf(objVal))
 					}
@@ -79,27 +79,29 @@ func Auto(from, to any) error {
 				continue
 			}
 			objType := reflect.TypeOf(objVal)
-			//fmt.Println(f.Type.Kind(), objType.Kind())
 			if f.Type.String() == objType.String() {
 				tsVal.Field(i).Set(reflect.ValueOf(objVal))
 			}
 		}
-
 	}
-	//fmt.Println(objMap)
 	return nil
 }
 
 // 结构体递归取值
 func mapRecursion(fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]interface{}) {
 	for i := 0; i < fromStructVal.NumField(); i++ {
-		itemType := fromStructVal.Field(i).Type()
-		if itemType.Kind() == reflect.Struct {
-			mapRecursion(fromStructType.Field(i).Name, fromStructVal.Field(i), fromStructType.Field(i).Type, objMap)
-		} else if itemType.Kind() == reflect.Map {
+		fieldVal := fromStructVal.Field(i)
+		itemType := fieldVal.Type()
+		// go 基础类型
+		if types.IsGoBasicType(itemType) {
+			itemName := fieldName + fromStructType.Field(i).Name
+			itemValue := fieldVal.Interface()
+			objMap[itemName] = itemValue
 
+			// map
+		} else if itemType.Kind() == reflect.Map {
 			newMaps := make(map[string]string)
-			maps := fromStructVal.Field(i).MapRange()
+			maps := fieldVal.MapRange()
 			for maps.Next() {
 				str := fmt.Sprintf("%v=%v", maps.Key(), maps.Value())
 				array := strings.Split(str, "=")
@@ -107,10 +109,10 @@ func mapRecursion(fieldName string, fromStructVal reflect.Value, fromStructType 
 			}
 			dic := collections.NewDictionaryFromMap(newMaps)
 			objMap[fieldName] = dic
-		} else {
-			itemName := fieldName + fromStructType.Field(i).Name
-			itemValue := fromStructVal.Field(i).Interface()
-			objMap[itemName] = itemValue
+
+			// struct
+		} else if itemType.Kind() == reflect.Struct {
+			mapRecursion(fromStructType.Field(i).Name, fieldVal, fromStructType.Field(i).Type, objMap)
 		}
 	}
 }
