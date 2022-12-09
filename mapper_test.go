@@ -26,10 +26,9 @@ func TestMapDOtoDTO(t *testing.T) {
 	arrDTO := TaskDTO{}
 	AutoMapper(&arrDO, &arrDTO)
 
-	//arrDO := TaskDO{}
-	//arrDTO := TaskDTO{Id: 1, ClientId: 2, ClientIp: "127.0.0.1", ClientName: "电脑", Status: Pending, User: UserVO{}, Data: dic}
-	//AutoMapper(&arrDTO, &arrDO)
-	//MapDTOtoDO(&arrDTO, &arrDO)
+	arrDO2 := TaskDO{}
+	arrDTO2 := TaskDTO{Id: 1, ClientId: 2, ClientIp: "127.0.0.1", ClientName: "电脑", Status: Pending, User: UserVO{}, Data: dic}
+	AutoMapper(&arrDTO2, &arrDO2)
 	fmt.Println(arrDO)
 	fmt.Println(arrDTO)
 }
@@ -43,7 +42,7 @@ func TestMapperSingle(t *testing.T) {
 	var arrDO []TaskDO
 	var arrDTO []TaskDTO
 	arrDO = append(arrDO, TaskDO{Id: 1, Client: ClientVO{Id: 2, Ip: "127.0.0.1", Name: "电脑"}, Status: Pending, Data: dic})
-	//ArrayDOtoDTO(&arrDO, &arrDTO)
+	//Single[arrDTO](arrDO)
 	fmt.Println(arrDTO)
 }
 
@@ -59,11 +58,26 @@ func TestArray(t *testing.T) {
 }
 
 func TestSingle(t *testing.T) {
-	poSingle := po{Name: "steden", Age: 18}
-	doSingle := Single[do](&poSingle)
 
-	assert.Equal(t, poSingle.Name, doSingle.Name)
-	assert.Equal(t, poSingle.Age, doSingle.Age)
+	dto := TaskDTO{
+		Id:         1,
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
+		Status:     Pending,
+		User: UserVO{
+			Id:   88,
+			Name: "steden",
+		},
+		Data: collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+	}
+
+	doSingle := Single[TaskDO](dto)
+	doSingle2 := Single[TaskDTO](doSingle)
+	assert.Equal(t, dto.Id, doSingle.Id)
+	assert.Equal(t, dto.ClientId, doSingle.Client.Id)
+	assert.Equal(t, doSingle2.Id, doSingle.Id)
+	assert.Equal(t, doSingle2.ClientId, doSingle.Client.Id)
 }
 
 func TestPageList(t *testing.T) {
