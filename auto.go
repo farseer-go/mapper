@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// 对象相互转换
+// Auto 对象相互转换
 func Auto(from, to any) error {
 	ts := reflect.TypeOf(to)
 	//判断是否指针
@@ -117,7 +117,7 @@ func mapRecursion(fieldName string, fromStructVal reflect.Value, fromStructType 
 	}
 }
 
-// 结构转map
+// StructToMap 结构转map
 func StructToMap(fromObjPtr any, dic any) error {
 	ts := reflect.TypeOf(fromObjPtr)
 	if ts.Kind() != reflect.Ptr {
