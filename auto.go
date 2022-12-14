@@ -55,11 +55,19 @@ func Auto(from, to any) error {
 				if f.Type.String() == objType.String() {
 					tsVal.Field(i).Set(reflect.ValueOf(objVal))
 				}
+			} else if types.IsGoBasicType(item) {
+				name := f.Name
+				objVal := objMap[name]
+				if objVal == nil {
+					continue
+				}
+				tsVal.Field(i).Set(reflect.ValueOf(objVal))
 			} else {
 				//结构内字段转换 赋值
 				for j := 0; j < structObj.NumField(); j++ {
 					itemType := structObj.Field(j).Type()
 					name := f.Name + f.Type.Field(j).Name
+
 					objVal := objMap[name]
 					if objVal == nil {
 						continue
@@ -93,6 +101,9 @@ func mapRecursion(fieldName string, fromStructVal reflect.Value, fromStructType 
 		fieldVal := fromStructVal.Field(i)
 		itemType := fieldVal.Type()
 		// go 基础类型
+		log := types.IsGoBasicType(itemType)
+		fmt.Println(log)
+
 		if types.IsGoBasicType(itemType) {
 			itemName := fieldName + fromStructType.Field(i).Name
 			itemValue := fieldVal.Interface()
