@@ -101,9 +101,6 @@ func mapRecursion(fieldName string, fromStructVal reflect.Value, fromStructType 
 		fieldVal := fromStructVal.Field(i)
 		itemType := fieldVal.Type()
 		// go 基础类型
-		log := types.IsGoBasicType(itemType)
-		fmt.Println(log)
-
 		if types.IsGoBasicType(itemType) {
 			itemName := fieldName + fromStructType.Field(i).Name
 			itemValue := fieldVal.Interface()
