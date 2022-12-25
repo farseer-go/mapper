@@ -17,23 +17,6 @@ type do struct {
 	Age  int
 }
 
-func TestMapDOtoDTO(t *testing.T) {
-	maps := make(map[string]string)
-	maps["Name"] = "steden"
-	maps["Age"] = "18"
-	dic := collections.NewDictionaryFromMap(maps)
-	dic.Add("name2", "harlen")
-	arrDO := TaskDO{Id: 1, Client: ClientVO{Id: 2, Ip: "127.0.0.1", Name: "电脑"}, Status: Pending, Data: dic}
-	arrDTO := TaskDTO{}
-	mapper.AutoMapper(&arrDO, &arrDTO)
-
-	arrDO2 := TaskDO{}
-	arrDTO2 := TaskDTO{Id: 1, ClientId: 2, ClientIp: "127.0.0.1", ClientName: "电脑", Status: Pending, User: UserVO{}, Data: dic}
-	mapper.AutoMapper(&arrDTO2, &arrDO2)
-	fmt.Println(arrDO)
-	fmt.Println(arrDTO)
-}
-
 func TestMapperSingle(t *testing.T) {
 	maps := make(map[string]string)
 	maps["name"] = "steden"
