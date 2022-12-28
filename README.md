@@ -13,7 +13,7 @@
 ![](https://img.shields.io/github/license/farseer-go/mapper)
 ![](https://img.shields.io/github/go-mod/go-version/farseer-go/mapper)
 ![](https://img.shields.io/github/v/release/farseer-go/mapper)
-![Codecov](https://img.shields.io/codecov/c/github/farseer-go/mapper)
+[![codecov](https://img.shields.io/codecov/c/github/farseer-go/mapper)](https://codecov.io/gh/farseer-go/mapper)
 ![](https://img.shields.io/github/languages/code-size/farseer-go/mapper)
 ![](https://img.shields.io/github/directory-file-count/farseer-go/mapper)
 ![](https://goreportcard.com/badge/github.com/farseer-go/mapper)
