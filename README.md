@@ -15,7 +15,7 @@
 ![](https://img.shields.io/github/v/release/farseer-go/mapper)
 [![codecov](https://img.shields.io/codecov/c/github/farseer-go/mapper)](https://codecov.io/gh/farseer-go/mapper)
 ![](https://img.shields.io/github/languages/code-size/farseer-go/mapper)
-[![Build](https://github.com/farseer-go/mapper/actions/workflows/go.yml/badge.svg)](https://github.com/farseer-go/mapper/actions/workflows/go.yml)
+[![Build](https://github.com/farseer-go/mapper/actions/workflows/test.yml/badge.svg)](https://github.com/farseer-go/mapper/actions/workflows/test.yml)
 ![](https://goreportcard.com/badge/github.com/farseer-go/mapper)
 
 ## 概述
