@@ -3,8 +3,8 @@ module github.com/farseer-go/mapper
 go 1.19
 
 require (
-	github.com/farseer-go/collections v0.2.1
-	github.com/farseer-go/fs v0.4.1
+	github.com/farseer-go/collections v0.3.0
+	github.com/farseer-go/fs v0.5.1-0.20230104092140-5fa094db9243
 	github.com/stretchr/testify v1.8.1
 )
 
