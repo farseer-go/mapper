@@ -3,6 +3,7 @@ package mapper
 import (
 	"fmt"
 	"github.com/farseer-go/collections"
+	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
@@ -38,7 +39,7 @@ func assignment(tsVal reflect.Value, objMap map[string]interface{}) {
 		name := f.Name
 		objVal := objMap[name]
 		//结构体赋值
-		if item.Kind() == reflect.Struct {
+		if item.Kind() == reflect.Struct && item.String() != "dateTime.DateTime" {
 			var structObj = tsVal.Field(i)
 			//list ,pagelist ,dic 转换 ，直接赋值
 			if types.IsCollections(structObj.Type()) {
@@ -58,10 +59,14 @@ func assignment(tsVal reflect.Value, objMap map[string]interface{}) {
 
 // 设置值
 func setVal(objVal interface{}, tsVal reflect.Value, f reflect.StructField, i int) {
+
 	if objVal != nil {
 		objType := reflect.TypeOf(objVal)
 		if f.Type.String() == objType.String() {
 			tsVal.Field(i).Set(reflect.ValueOf(objVal))
+		} else {
+			convert := parse.ConvertValue(objVal, f.Type)
+			tsVal.Field(i).Set(convert)
 		}
 	}
 }
@@ -89,7 +94,7 @@ func analysis(fsVal reflect.Value, objMap map[string]interface{}) {
 		fieldName := fsVal.Type().Field(i).Name
 
 		// 结构体遍历
-		if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) {
+		if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" {
 			structAnalysis(fieldName, fsVal.Field(i), fsVal.Type().Field(i).Type, objMap)
 		} else {
 			// 非结构体遍历
