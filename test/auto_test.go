@@ -134,6 +134,7 @@ func TestDtoToDo(t *testing.T) {
 
 	var do TaskDO
 	_ = mapper.Auto(dto, &do)
+
 	assert.Equal(t, do.Id, do.Id)
 	assert.Equal(t, dto.ClientId, do.Client.Id)
 	assert.Equal(t, dto.ClientIp, do.Client.Ip)
