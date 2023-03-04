@@ -95,7 +95,7 @@ func analysis(fsVal reflect.Value, objMap map[string]interface{}) {
 
 		// 结构体遍历
 		if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" {
-			structAnalysis(fieldName, fsVal.Field(i), fsVal.Type().Field(i).Type, objMap)
+			structAnalysis(fieldName, fieldName, fsVal.Field(i), fsVal.Type().Field(i).Type, objMap)
 		} else {
 			// 非结构体遍历
 			itemValue := fsVal.Field(i).Interface()
@@ -105,7 +105,7 @@ func analysis(fsVal reflect.Value, objMap map[string]interface{}) {
 }
 
 // 结构体递归解析
-func structAnalysis(fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]interface{}) {
+func structAnalysis(parentName string, fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]interface{}) {
 	for i := 0; i < fromStructVal.NumField(); i++ {
 		fieldVal := fromStructVal.Field(i)
 		itemType := fieldVal.Type()
@@ -116,16 +116,16 @@ func structAnalysis(fieldName string, fromStructVal reflect.Value, fromStructTyp
 			objMap[itemName] = itemValue
 			// map
 		} else if itemType.Kind() == reflect.Map {
-			mapAnalysis(fieldName, fieldVal, objMap)
+			mapAnalysis(parentName, fieldName, fieldVal, objMap)
 			// struct
 		} else if itemType.Kind() == reflect.Struct {
-			structAnalysis(fromStructType.Field(i).Name, fieldVal, fromStructType.Field(i).Type, objMap)
+			structAnalysis(parentName, fromStructType.Field(i).Name, fieldVal, fromStructType.Field(i).Type, objMap)
 		}
 	}
 }
 
 // map 解析
-func mapAnalysis(fieldName string, fieldVal reflect.Value, objMap map[string]interface{}) {
+func mapAnalysis(parentName string, fieldName string, fieldVal reflect.Value, objMap map[string]interface{}) {
 	newMaps := make(map[string]string)
 	maps := fieldVal.MapRange()
 	for maps.Next() {
@@ -134,7 +134,7 @@ func mapAnalysis(fieldName string, fieldVal reflect.Value, objMap map[string]int
 		newMaps[array[0]] = array[1]
 	}
 	dic := collections.NewDictionaryFromMap(newMaps)
-	objMap[fieldName] = dic
+	objMap[parentName] = dic
 }
 
 // StructToMap 结构转map
