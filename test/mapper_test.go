@@ -1,7 +1,6 @@
 package test
 
 import (
-	"fmt"
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/mapper"
 	"github.com/stretchr/testify/assert"
@@ -17,32 +16,35 @@ type do struct {
 	Age  int
 }
 
-func TestMapperSingle(t *testing.T) {
-	maps := make(map[string]string)
-	maps["name"] = "steden"
-	maps["age"] = "18"
-	dic := collections.NewDictionaryFromMap(maps)
-	dic.Add("name2", "harlen")
-	var arrDO []TaskDO
-	var arrDTO []TaskDTO
-	arrDO = append(arrDO, TaskDO{Id: 1, Client: ClientVO{Id: 2, Ip: "127.0.0.1", Name: "电脑"}, Status: Pending, Data: dic})
-	//Single[arrDTO](arrDO)
-	fmt.Println(arrDTO)
-}
-
 func TestArray(t *testing.T) {
-	arrPO := []po{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
-	arrDO := mapper.Array[do](arrPO)
-	assert.Equal(t, len(arrPO), len(arrDO))
+	arrDto := []TaskDTO{{
+		Id:         1,
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
+		Status:     Pending,
+		User:       UserVO{Id: 88, Name: "steden"},
+		Data:       collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+	}, {
+		Id:         2,
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
+		Status:     Pending,
+		User:       UserVO{Id: 20, Name: "steden1"},
+		Data:       collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+	}}
 
-	for i := 0; i < len(arrPO); i++ {
-		assert.Equal(t, arrPO[i].Name, arrDO[i].Name)
-		assert.Equal(t, arrPO[i].Age, arrDO[i].Age)
+	arrDO := mapper.Array[TaskDO](arrDto)
+	assert.Equal(t, len(arrDto), len(arrDO))
+
+	for i := 0; i < len(arrDto); i++ {
+		assert.Equal(t, arrDto[i].User.Name, arrDO[i].UserName)
+		assert.Equal(t, arrDto[i].User.Id, arrDO[i].UserId)
 	}
 }
 
 func TestSingle(t *testing.T) {
-
 	dto := TaskDTO{
 		Id:         1,
 		ClientId:   1000,
@@ -65,79 +67,135 @@ func TestSingle(t *testing.T) {
 }
 
 func TestPageList(t *testing.T) {
-	arrPO := []po{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
-	lst := mapper.ToPageList[do](arrPO, 10)
+	arrDto := []TaskDTO{{
+		Id:         1,
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
+		Status:     Pending,
+		User:       UserVO{Id: 88, Name: "steden"},
+		Data:       collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+	}, {
+		Id:         2,
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
+		Status:     Pending,
+		User:       UserVO{Id: 20, Name: "steden1"},
+		Data:       collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+	}}
 
-	assert.Equal(t, len(arrPO), lst.List.Count())
+	lst := mapper.ToPageList[TaskDO](arrDto, 10)
+
+	assert.Equal(t, len(arrDto), lst.List.Count())
 
 	assert.Equal(t, lst.RecordCount, int64(10))
-	for i := 0; i < len(arrPO); i++ {
-		assert.Equal(t, arrPO[i].Name, lst.List.Index(i).Name)
-		assert.Equal(t, arrPO[i].Age, lst.List.Index(i).Age)
+	for i := 0; i < len(arrDto); i++ {
+		assert.Equal(t, arrDto[i].User.Name, lst.List.Index(i).UserName)
+		assert.Equal(t, arrDto[i].User.Id, lst.List.Index(i).UserId)
 	}
 }
 
 func TestToList(t *testing.T) {
-	lst := collections.NewList(po{Name: "steden", Age: 18}, po{Name: "steden1", Age: 20})
-	lstDO := mapper.ToList[do](lst)
+	arrDto := []TaskDTO{{
+		Id:         1,
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
+		Status:     Pending,
+		User:       UserVO{Id: 88, Name: "steden"},
+		Data:       collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+	}, {
+		Id:         2,
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
+		Status:     Pending,
+		User:       UserVO{Id: 20, Name: "steden1"},
+		Data:       collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+	}}
+	lst := collections.NewList(arrDto...)
+	lstDO := mapper.ToList[TaskDO](lst)
 
 	assert.Equal(t, lst.Count(), lstDO.Count())
 
 	for i := 0; i < lst.Count(); i++ {
-		assert.Equal(t, lst.Index(i).Name, lstDO.Index(i).Name)
-		assert.Equal(t, lst.Index(i).Age, lstDO.Index(i).Age)
+		assert.Equal(t, lst.Index(i).User.Name, lstDO.Index(i).UserName)
+		assert.Equal(t, lst.Index(i).User.Id, lstDO.Index(i).UserId)
 	}
 
 	lstAny := lst.ToListAny()
-	lstDO = mapper.ToList[do](lstAny)
+	lstDO = mapper.ToList[TaskDO](lstAny)
 
 	assert.Equal(t, lstAny.Count(), lstDO.Count())
 
 	for i := 0; i < lstAny.Count(); i++ {
-		po := lstAny.Index(i).(po)
-		assert.Equal(t, po.Name, lstDO.Index(i).Name)
-		assert.Equal(t, po.Age, lstDO.Index(i).Age)
+		assert.Equal(t, lstAny.Index(i).(TaskDTO).User.Name, lstDO.Index(i).UserName)
+		assert.Equal(t, lstAny.Index(i).(TaskDTO).User.Id, lstDO.Index(i).UserId)
 	}
 
 	arr := lst.ToArray()
-	lstDO = mapper.ToList[do](arr)
+	lstDO = mapper.ToList[TaskDO](arr)
 
 	assert.Equal(t, len(arr), lstDO.Count())
 
 	for i := 0; i < lstAny.Count(); i++ {
-		assert.Equal(t, arr[i].Name, lstDO.Index(i).Name)
-		assert.Equal(t, arr[i].Age, lstDO.Index(i).Age)
+		assert.Equal(t, arr[i].User.Name, lstDO.Index(i).UserName)
+		assert.Equal(t, arr[i].User.Id, lstDO.Index(i).UserId)
 	}
 }
 
 func TestToListAny(t *testing.T) {
-	arrPO := []po{{Name: "steden", Age: 18}, {Name: "steden1", Age: 20}}
+	arrDto := []TaskDTO{{
+		Id:         1,
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
+		Status:     Pending,
+		User:       UserVO{Id: 88, Name: "steden"},
+		Data:       collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+	}, {
+		Id:         2,
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
+		Status:     Pending,
+		User:       UserVO{Id: 20, Name: "steden1"},
+		Data:       collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+	}}
 
-	listAny := mapper.ToListAny(arrPO)
+	listAny := mapper.ToListAny(arrDto)
 
-	assert.Equal(t, listAny.Count(), len(arrPO))
+	assert.Equal(t, listAny.Count(), len(arrDto))
 	for i := 0; i < listAny.Count(); i++ {
-		po := listAny.Index(i).(po)
-
-		assert.Equal(t, po.Name, arrPO[i].Name)
-		assert.Equal(t, po.Age, arrPO[i].Age)
+		assert.Equal(t, listAny.Index(i).(TaskDTO).User.Name, arrDto[i].User.Name)
+		assert.Equal(t, listAny.Index(i).(TaskDTO).User.Id, arrDto[i].User.Id)
 	}
 
-	lst := collections.NewList(arrPO...)
+	lst := collections.NewList(arrDto...)
 	listAny = mapper.ToListAny(lst)
 
-	assert.Equal(t, listAny.Count(), len(arrPO))
+	assert.Equal(t, listAny.Count(), len(arrDto))
 	for i := 0; i < listAny.Count(); i++ {
-		po := listAny.Index(i).(po)
-
-		assert.Equal(t, po.Name, arrPO[i].Name)
-		assert.Equal(t, po.Age, arrPO[i].Age)
+		assert.Equal(t, listAny.Index(i).(TaskDTO).User.Name, arrDto[i].User.Name)
+		assert.Equal(t, listAny.Index(i).(TaskDTO).User.Id, arrDto[i].User.Id)
 	}
 }
 
 func TestToMap(t *testing.T) {
-	arrPO := po{Name: "steden", Age: 18}
-	dic := mapper.ToMap[string, any](&arrPO)
-	assert.Equal(t, "steden", dic["Name"])
-	assert.Equal(t, 18, dic["Age"])
+	dto := TaskDTO{
+		Id:         1,
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
+		Status:     Pending,
+		User: UserVO{
+			Id:   88,
+			Name: "steden",
+		},
+		Data: collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+	}
+	dic := mapper.ToMap[string, any](dto)
+	assert.Equal(t, "steden", dic["User"].(UserVO).Name)
+	assert.Equal(t, int64(88), dic["User"].(UserVO).Id)
 }
