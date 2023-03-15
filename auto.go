@@ -139,11 +139,11 @@ func mapAnalysis(parentName string, fieldName string, fieldVal reflect.Value, ob
 
 // StructToMap 结构转map
 func StructToMap(fromObjPtr any, dic any) error {
-	ts := reflect.TypeOf(fromObjPtr)
-	if ts.Kind() != reflect.Ptr {
-		return fmt.Errorf("toDTO must be a struct pointer")
-	}
-	fsVal := reflect.ValueOf(fromObjPtr).Elem()
+	//ts := reflect.TypeOf(fromObjPtr)
+	//if ts.Kind() != reflect.Ptr {
+	//	return fmt.Errorf("toDTO must be a struct pointer")
+	//}
+	fsVal := reflect.Indirect(reflect.ValueOf(fromObjPtr))
 	for i := 0; i < fsVal.NumField(); i++ {
 		itemName := fsVal.Type().Field(i).Name
 		itemValue := fsVal.Field(i)
