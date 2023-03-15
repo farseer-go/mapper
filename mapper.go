@@ -22,18 +22,16 @@ func Array[T any](fromSlice any) []T {
 }
 
 // Single 单个转换
-// fromObjPtr=struct的指针
-func Single[TEntity any](fromObjPtr any) TEntity {
+func Single[TEntity any](object any) TEntity {
 	var toObj TEntity
-	_ = Auto(fromObjPtr, &toObj)
+	_ = Auto(object, &toObj)
 	return toObj
 }
 
 // ToMap 结构体转Map
-// fromObjPtr=struct的指针
-func ToMap[K comparable, V any](fromObjPtr any) map[K]V {
+func ToMap[K comparable, V any](entity any) map[K]V {
 	dic := make(map[K]V)
-	_ = StructToMap(fromObjPtr, dic)
+	_ = StructToMap(entity, dic)
 	return dic
 }
 
