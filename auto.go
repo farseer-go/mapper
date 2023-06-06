@@ -31,7 +31,7 @@ func Auto(from, to any) error {
 }
 
 // 赋值操作
-func assignment(tsVal reflect.Value, objMap map[string]interface{}) {
+func assignment(tsVal reflect.Value, objMap map[string]any) {
 	for i := 0; i < tsVal.NumField(); i++ {
 		//获取单个字段类型
 		item := tsVal.Field(i).Type()
@@ -58,7 +58,7 @@ func assignment(tsVal reflect.Value, objMap map[string]interface{}) {
 }
 
 // 设置值
-func setVal(objVal interface{}, tsVal reflect.Value, f reflect.StructField, i int) {
+func setVal(objVal any, tsVal reflect.Value, f reflect.StructField, i int) {
 
 	if objVal != nil {
 		objType := reflect.TypeOf(objVal)
@@ -72,7 +72,7 @@ func setVal(objVal interface{}, tsVal reflect.Value, f reflect.StructField, i in
 }
 
 // 结构赋值
-func setStructVal(structObj reflect.Value, f reflect.StructField, tsVal reflect.Value, objMap map[string]interface{}, i int) {
+func setStructVal(structObj reflect.Value, f reflect.StructField, tsVal reflect.Value, objMap map[string]any, i int) {
 	for j := 0; j < structObj.NumField(); j++ {
 		itemType := structObj.Field(j).Type()
 		name := f.Name + f.Type.Field(j).Name
@@ -88,7 +88,7 @@ func setStructVal(structObj reflect.Value, f reflect.StructField, tsVal reflect.
 }
 
 // 解析结构体
-func analysis(fsVal reflect.Value, objMap map[string]interface{}) {
+func analysis(fsVal reflect.Value, objMap map[string]any) {
 	for i := 0; i < fsVal.NumField(); i++ {
 		itemType := fsVal.Field(i).Type()
 		fieldName := fsVal.Type().Field(i).Name
@@ -105,7 +105,7 @@ func analysis(fsVal reflect.Value, objMap map[string]interface{}) {
 }
 
 // 结构体递归解析
-func structAnalysis(parentName string, fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]interface{}) {
+func structAnalysis(parentName string, fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]any) {
 	for i := 0; i < fromStructVal.NumField(); i++ {
 		fieldVal := fromStructVal.Field(i)
 		itemType := fieldVal.Type()
@@ -125,7 +125,7 @@ func structAnalysis(parentName string, fieldName string, fromStructVal reflect.V
 }
 
 // map 解析
-func mapAnalysis(parentName string, fieldName string, fieldVal reflect.Value, objMap map[string]interface{}) {
+func mapAnalysis(parentName string, fieldName string, fieldVal reflect.Value, objMap map[string]any) {
 	newMaps := make(map[string]string)
 	maps := fieldVal.MapRange()
 	for maps.Next() {
