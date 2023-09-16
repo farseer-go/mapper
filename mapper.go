@@ -16,7 +16,7 @@ func Array[T any](fromSlice any) []T {
 	for i := 0; i < sliArray.Len(); i++ {
 		item := sliArray.Index(i)
 		var tInfo T
-		_ = Auto(item.Interface(), &tInfo)
+		_ = auto(item.Interface(), &tInfo)
 		toSlice = append(toSlice, tInfo)
 	}
 	return toSlice
@@ -25,7 +25,7 @@ func Array[T any](fromSlice any) []T {
 // Single 单个转换
 func Single[TEntity any](object any) TEntity {
 	var toObj TEntity
-	_ = Auto(object, &toObj)
+	_ = auto(object, &toObj)
 	return toObj
 }
 
