@@ -10,7 +10,7 @@ import (
 )
 
 // Auto 对象相互转换
-func Auto(from, to any) error {
+func auto(from, to any) error {
 	ts := reflect.TypeOf(to)
 	//判断是否指针
 	if ts.Kind() != reflect.Ptr {
