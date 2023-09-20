@@ -3,6 +3,7 @@ package mapper
 import (
 	"fmt"
 	"github.com/farseer-go/collections"
+	"github.com/farseer-go/fs/core"
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
 	"reflect"
@@ -10,14 +11,19 @@ import (
 )
 
 // Auto 对象相互转换
-func auto(from, to any) error {
+func Auto(from, to any) error {
 	ts := reflect.TypeOf(to)
 	//判断是否指针
 	if ts.Kind() != reflect.Ptr {
 		return fmt.Errorf("toDTO must be a struct pointer")
 	}
+
+	// 转换完成之后 执行初始化MapperInit方法
+	defer execInitFunc(reflect.ValueOf(to))
+
 	// 反射来源对象
 	fsVal := reflect.Indirect(reflect.ValueOf(from))
+
 	// 定义存储map ,保存解析出来的字段和值
 	objMap := make(map[string]any)
 	// 遍历来源对象
@@ -49,6 +55,7 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 			} else {
 				//结构内字段转换 赋值
 				setStructVal(structObj, f, tsVal, objMap, i)
+
 			}
 		} else {
 			//正常字段转换
@@ -85,6 +92,10 @@ func setStructVal(structObj reflect.Value, f reflect.StructField, tsVal reflect.
 			tsVal.Field(i).Field(j).Set(reflect.ValueOf(objVal))
 		}
 	}
+	// 转换完成之后 执行初始化MapperInit方法
+
+	defer execInitFunc(tsVal.Field(i).Addr())
+	//defer execInitFunc(reflect.ValueOf(tsVal.Field(i).Interface()))
 }
 
 // 解析结构体
@@ -106,6 +117,7 @@ func analysis(fsVal reflect.Value, objMap map[string]any) {
 
 // 结构体递归解析
 func structAnalysis(parentName string, fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]any) {
+	// 转换完成之后 执行初始化MapperInit方法
 	for i := 0; i < fromStructVal.NumField(); i++ {
 		fieldVal := fromStructVal.Field(i)
 		itemType := fieldVal.Type()
@@ -150,4 +162,26 @@ func StructToMap(fromObjPtr any, dic any) error {
 		reflect.ValueOf(dic).SetMapIndex(reflect.ValueOf(itemName), itemValue)
 	}
 	return nil
+}
+
+// execInitFunc map转换完成之后执行 初始化方法
+func execInitFunc(cVal reflect.Value) {
+	// 是否实现了IMapperInit
+	var actionMapperInit = reflect.TypeOf((*core.IMapperInit)(nil)).Elem()
+	if actionMapperInit != nil {
+		isImplActionMapperInit := cVal.Type().Implements(actionMapperInit)
+		if isImplActionMapperInit {
+			//执行方法
+			cVal.MethodByName("MapperInit").Call([]reflect.Value{})
+			return
+		}
+	}
+	actionMapperInit = reflect.TypeOf((core.IMapperInit)(nil))
+	if actionMapperInit != nil {
+		isImplActionMapperInit := cVal.Type().Implements(actionMapperInit)
+		if isImplActionMapperInit {
+			//执行方法
+			cVal.MethodByName("MapperInit").Call([]reflect.Value{})
+		}
+	}
 }

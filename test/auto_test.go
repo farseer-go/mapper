@@ -37,6 +37,11 @@ type ClientVO struct {
 	Name string
 }
 
+func (vo *ClientVO) MapperInit() {
+	vo.Id = vo.Id + 1
+	println("已执行 ClientVO 初始化方法 MapperInit ")
+}
+
 type UserVO struct {
 	Id   int64
 	Name string
@@ -99,6 +104,11 @@ type TaskDTO struct {
 	LastUpdateAt dateTime.DateTime
 }
 
+func (do *TaskDO) MapperInit() {
+	do.Id = do.Id + 1
+	println("已执行 TaskDO 初始化方法 MapperInit ")
+}
+
 func TestDtoToDo(t *testing.T) {
 	dto := TaskDTO{
 		Id:         1,
@@ -107,7 +117,7 @@ func TestDtoToDo(t *testing.T) {
 		ClientName: "node",
 		Status:     Pending,
 		User: UserVO{
-			Id:   88,
+			Id:   1,
 			Name: "steden",
 		},
 		Data:         collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
@@ -135,8 +145,8 @@ func TestDtoToDo(t *testing.T) {
 	var do TaskDO
 	_ = mapper.Auto(dto, &do)
 
-	assert.Equal(t, do.Id, do.Id)
-	assert.Equal(t, dto.ClientId, do.Client.Id)
+	assert.Equal(t, dto.Id+1, do.Id)
+	assert.Equal(t, dto.ClientId+1, do.Client.Id)
 	assert.Equal(t, dto.ClientIp, do.Client.Ip)
 	assert.Equal(t, dto.ClientName, do.Client.Name)
 	assert.Equal(t, dto.Status, do.Status)
