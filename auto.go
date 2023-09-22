@@ -8,6 +8,7 @@ import (
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
+	"unicode"
 )
 
 // Auto 对象相互转换
@@ -105,7 +106,10 @@ func analysis(fsVal reflect.Value, objMap map[string]any) {
 		fieldName := fsVal.Type().Field(i).Name
 
 		// 结构体遍历
-		if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" {
+		lower := unicode.IsLower(rune(fieldName[0])) //判断是否是  非导出字段
+		if itemType.Kind() == reflect.Interface && lower {
+			continue
+		} else if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" {
 			structAnalysis(fieldName, fieldName, fsVal.Field(i), fsVal.Type().Field(i).Type, objMap)
 		} else {
 			// 非结构体遍历

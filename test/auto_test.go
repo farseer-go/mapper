@@ -102,6 +102,9 @@ type TaskDTO struct {
 	IdFloat32    float32
 	IdFloat64    float64
 	LastUpdateAt dateTime.DateTime
+	product      IProduct
+}
+type IProduct interface {
 }
 
 func (do *TaskDO) MapperInit() {
