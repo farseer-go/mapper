@@ -105,7 +105,7 @@ func analysis(fsVal reflect.Value, objMap map[string]any) {
 		field := fsVal.Type().Field(i)
 
 		// 结构体遍历
-		if itemType.Kind() == reflect.Interface && field.IsExported() {
+		if itemType.Kind() == reflect.Interface || field.IsExported() {
 			continue
 		}
 		if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" {
