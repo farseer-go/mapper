@@ -89,8 +89,12 @@ func setSliceVal(objVal any, fieldVal reflect.Value) {
 					name := itemSubType.Name
 					//相同字段赋值
 					field := newItemField.FieldByName(name)
+					//没有发现相同字段的直接跳过
+					if !field.IsValid() {
+						continue
+					}
 					if itemSubValue.Kind() == reflect.Struct {
-						setSliceValStruct(itemSubType, itemSubValue, newItemField)
+						setSliceValStruct(itemSubValue, field)
 					} else if itemSubValue.Kind() == reflect.Slice {
 						setSliceVal(itemSubValue.Interface(), field)
 					} else {
@@ -107,7 +111,7 @@ func setSliceVal(objVal any, fieldVal reflect.Value) {
 }
 
 // 结构赋值
-func setSliceValStruct(fieldType reflect.StructField, fieldVal reflect.Value, fields reflect.Value) {
+func setSliceValStruct(fieldVal reflect.Value, fields reflect.Value) {
 	for j := 0; j < fieldVal.NumField(); j++ {
 		itemSubValue := fieldVal.Field(j)
 		itemSubType := fieldVal.Type().Field(j)
@@ -115,7 +119,7 @@ func setSliceValStruct(fieldType reflect.StructField, fieldVal reflect.Value, fi
 		//相同字段赋值
 		field := fields.FieldByName(name)
 		if itemSubValue.Kind() == reflect.Struct {
-			setSliceValStruct(itemSubType, itemSubValue.Elem(), fields)
+			setSliceValStruct(itemSubValue, fields)
 		} else if itemSubValue.Kind() == reflect.Slice {
 			setSliceVal(itemSubValue.Elem(), fields)
 		} else {

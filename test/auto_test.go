@@ -51,7 +51,7 @@ type UserVO struct {
 type UserVO2 struct {
 	Id     int64
 	Name   string
-	User4  UserVO4
+	User3  UserVO4
 	Array3 []string
 }
 type UserVO3 struct {
