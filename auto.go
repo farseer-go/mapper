@@ -79,7 +79,7 @@ func setSliceVal(objVal any, fieldVal reflect.Value) {
 		for i := 0; i < sliArray.Len(); i++ {
 			//获取数组内的元素
 			structObj := sliArray.Index(i)
-			if structObj.Kind() == reflect.Struct {
+			if structObj.Kind() == reflect.Struct && itemType.String() != structObj.Type().String() {
 				newItem := reflect.New(itemType)
 				// 要转换对象的值
 				newItemField := newItem.Elem()
@@ -267,6 +267,10 @@ func structAnalysis(parentName string, fieldName string, fromStructVal reflect.V
 			// struct
 		} else if itemType.Kind() == reflect.Struct {
 			structAnalysis(parentName, fromStructType.Field(i).Name, fieldVal, fromStructType.Field(i).Type, objMap)
+		} else if itemType.Kind() == reflect.Slice {
+			itemName := fieldName + fromStructType.Field(i).Name
+			itemValue := fieldVal.Interface()
+			objMap[itemName] = itemValue
 		}
 	}
 }
