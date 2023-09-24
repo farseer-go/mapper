@@ -92,7 +92,7 @@ func setSliceVal(objVal any, fieldVal reflect.Value) {
 					if itemSubValue.Kind() == reflect.Struct {
 						setSliceValStruct(itemSubType, itemSubValue, newItemField)
 					} else if itemSubValue.Kind() == reflect.Slice {
-						setSliceVal(itemSubValue, field)
+						setSliceVal(itemSubValue.Interface(), field)
 					} else {
 						field.Set(itemSubValue)
 					}
