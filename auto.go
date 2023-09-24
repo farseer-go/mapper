@@ -97,6 +97,8 @@ func setSliceVal(objVal any, fieldVal reflect.Value) {
 						setSliceValStruct(itemSubValue, field)
 					} else if itemSubValue.Kind() == reflect.Slice {
 						setSliceVal(itemSubValue.Interface(), field)
+					} else if itemSubValue.Kind() == reflect.Map {
+						setSliceValMap(itemSubValue.Interface(), field)
 					} else {
 						field.Set(itemSubValue)
 					}
@@ -110,7 +112,69 @@ func setSliceVal(objVal any, fieldVal reflect.Value) {
 	}
 }
 
-// 结构赋值
+// map赋值
+func setSliceValMap(objVal any, fieldVal reflect.Value) {
+	fsVal := reflect.ValueOf(objVal).MapRange()
+	fieldVal.Set(reflect.MakeMap(fieldVal.Type()))
+	for fsVal.Next() {
+		k := fsVal.Key()
+		v := fsVal.Value()
+		item := v.Type()
+		value := v.Interface()
+		//key := k.Interface()
+		//指针类型的值对象
+		if v.Type().Kind() == reflect.Pointer {
+			vKind := reflect.TypeOf(v.Elem().Interface()).Kind()
+			if vKind == reflect.Struct {
+				newObj := reflect.New(fieldVal.Type().Elem().Elem())
+				setMapValStruct(v.Elem(), newObj)
+				fieldVal.SetMapIndex(k, newObj)
+			} else if vKind == reflect.Slice {
+				setSliceVal(v.Elem().Interface(), fieldVal)
+			} else if vKind == reflect.Map {
+				setSliceValMap(v.Elem().Interface(), fieldVal)
+			} else {
+				fieldVal.Set(v.Elem())
+			}
+		} else {
+			//非指针类型的
+			if item.Kind() == reflect.Struct {
+				setSliceValStruct(reflect.ValueOf(value), fieldVal)
+			} else if item.Kind() == reflect.Slice {
+				setSliceVal(value, fieldVal)
+			} else if item.Kind() == reflect.Map {
+				setSliceValMap(value, fieldVal)
+			} else {
+				fieldVal.Set(v)
+			}
+		}
+
+	}
+}
+
+// Map结构赋值
+func setMapValStruct(fieldVal reflect.Value, fields reflect.Value) {
+	for j := 0; j < fieldVal.NumField(); j++ {
+		itemSubValue := fieldVal.Field(j)
+		itemSubType := fieldVal.Type().Field(j)
+		name := itemSubType.Name
+		//相同字段赋值
+		field := fields.Elem().FieldByName(name)
+		if itemSubValue.Kind() == reflect.Struct {
+			setMapValStruct(itemSubValue, fields)
+		} else if itemSubValue.Kind() == reflect.Slice {
+			setSliceVal(itemSubValue.Elem(), fields)
+		} else {
+			field.Set(itemSubValue)
+		}
+	}
+	// 转换完成之后 执行初始化MapperInit方法
+
+	defer execInitFunc(fieldVal.Addr())
+	//defer execInitFunc(reflect.ValueOf(tsVal.Field(i).Interface()))
+}
+
+// 数组结构赋值
 func setSliceValStruct(fieldVal reflect.Value, fields reflect.Value) {
 	for j := 0; j < fieldVal.NumField(); j++ {
 		itemSubValue := fieldVal.Field(j)

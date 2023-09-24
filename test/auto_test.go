@@ -47,12 +47,14 @@ type UserVO struct {
 	Name   string
 	User3  UserVO3
 	Array3 []string
+	Count  map[int]*CountVO
 }
 type UserVO2 struct {
 	Id     int64
 	Name   string
 	User3  UserVO4
 	Array3 []string
+	Count  map[int]*CountVO2
 }
 type UserVO3 struct {
 	Id   int64
@@ -61,6 +63,13 @@ type UserVO3 struct {
 type UserVO4 struct {
 	Id   int64
 	Name string
+}
+
+type CountVO struct {
+	Count int // 出现的次数
+}
+type CountVO2 struct {
+	Count int // 出现的次数
 }
 type TaskDO struct {
 	Array        []UserVO2
@@ -132,10 +141,12 @@ func (do *TaskDO) MapperInit() {
 }
 
 func TestDtoToDo(t *testing.T) {
+	mapArray := make(map[int]*CountVO, 1)
+	mapArray[0] = &CountVO{Count: 999}
 	arrayUser := make([]UserVO, 1)
 	arrayStr := make([]string, 1)
 	arrayStr[0] = "数组字符串测试"
-	arrayUser[0] = UserVO{Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}}
+	arrayUser[0] = UserVO{Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray}
 	dto := TaskDTO{
 		Array:      arrayUser,
 		ArrayStr:   arrayStr,
