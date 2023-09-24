@@ -40,61 +40,125 @@ func Auto(from, to any) error {
 func assignment(tsVal reflect.Value, objMap map[string]any) {
 	for i := 0; i < tsVal.NumField(); i++ {
 		//获取单个字段类型
-		item := tsVal.Field(i).Type()
-		f := tsVal.Type().Field(i)
-		name := f.Name
-		objVal := objMap[name]
+		fieldType := tsVal.Type().Field(i)
+		fieldVal := tsVal.Field(i)
+		item := fieldVal.Type()
+		objVal := objMap[fieldType.Name]
 		//结构体赋值
 		if item.Kind() == reflect.Struct && item.String() != "dateTime.DateTime" {
-			var structObj = tsVal.Field(i)
 			//list ,pagelist ,dic 转换 ，直接赋值
-			if types.IsCollections(structObj.Type()) {
-				setVal(objVal, tsVal, f, i)
+			if types.IsCollections(fieldVal.Type()) {
+				setVal(objVal, fieldVal, fieldType)
 			} else if types.IsGoBasicType(item) {
-				setVal(objVal, tsVal, f, i)
+				setVal(objVal, fieldVal, fieldType)
 			} else {
 				//结构内字段转换 赋值
-				setStructVal(structObj, f, tsVal, objMap, i)
-
+				setStructVal(fieldType, fieldVal, objMap)
 			}
+
+		} else if item.Kind() == reflect.Slice {
+			setSliceVal(objVal, fieldVal)
 		} else {
 			//正常字段转换
-			setVal(objVal, tsVal, f, i)
+			setVal(objVal, fieldVal, fieldType)
 		}
 	}
 }
 
+// 数组设置值
+func setSliceVal(objVal any, fieldVal reflect.Value) {
+	//获取到具体的值信息
+	if objVal != nil {
+		//数组对象
+		tsValType := fieldVal.Type()
+		//要转换的类型
+		itemType := tsValType.Elem()
+		// 取得数组中元素的类型
+		newArr := reflect.MakeSlice(tsValType, 0, 0)
+		sliArray := reflect.Indirect(reflect.ValueOf(objVal))
+		for i := 0; i < sliArray.Len(); i++ {
+			//获取数组内的元素
+			structObj := sliArray.Index(i)
+			if structObj.Kind() == reflect.Struct {
+				newItem := reflect.New(itemType)
+				// 要转换对象的值
+				newItemField := newItem.Elem()
+				for j := 0; j < structObj.NumField(); j++ {
+					itemSubValue := structObj.Field(j)
+					itemSubType := structObj.Type().Field(j)
+					name := itemSubType.Name
+					//相同字段赋值
+					field := newItemField.FieldByName(name)
+					if itemSubValue.Kind() == reflect.Struct {
+						setSliceValStruct(itemSubType, itemSubValue, newItemField)
+					} else if itemSubValue.Kind() == reflect.Slice {
+						setSliceVal(itemSubValue, field)
+					} else {
+						field.Set(itemSubValue)
+					}
+				}
+				newArr = reflect.Append(newArr, newItem.Elem())
+			} else {
+				newArr = reflect.Append(newArr, structObj)
+			}
+		}
+		fieldVal.Set(newArr)
+	}
+}
+
+// 结构赋值
+func setSliceValStruct(fieldType reflect.StructField, fieldVal reflect.Value, fields reflect.Value) {
+	for j := 0; j < fieldVal.NumField(); j++ {
+		itemSubValue := fieldVal.Field(j)
+		itemSubType := fieldVal.Type().Field(j)
+		name := itemSubType.Name
+		//相同字段赋值
+		field := fields.FieldByName(name)
+		if itemSubValue.Kind() == reflect.Struct {
+			setSliceValStruct(itemSubType, itemSubValue.Elem(), fields)
+		} else if itemSubValue.Kind() == reflect.Slice {
+			setSliceVal(itemSubValue.Elem(), fields)
+		} else {
+			field.Set(itemSubValue)
+		}
+	}
+	// 转换完成之后 执行初始化MapperInit方法
+
+	defer execInitFunc(fieldVal.Addr())
+	//defer execInitFunc(reflect.ValueOf(tsVal.Field(i).Interface()))
+}
+
 // 设置值
-func setVal(objVal any, tsVal reflect.Value, f reflect.StructField, i int) {
+func setVal(objVal any, fieldVal reflect.Value, fieldType reflect.StructField) {
 
 	if objVal != nil {
 		objType := reflect.TypeOf(objVal)
-		if f.Type.String() == objType.String() {
-			tsVal.Field(i).Set(reflect.ValueOf(objVal))
+		if fieldType.Type.String() == objType.String() {
+			fieldVal.Set(reflect.ValueOf(objVal))
 		} else {
-			convert := parse.ConvertValue(objVal, f.Type)
-			tsVal.Field(i).Set(convert)
+			convert := parse.ConvertValue(objVal, fieldType.Type)
+			fieldVal.Set(convert)
 		}
 	}
 }
 
 // 结构赋值
-func setStructVal(structObj reflect.Value, f reflect.StructField, tsVal reflect.Value, objMap map[string]any, i int) {
-	for j := 0; j < structObj.NumField(); j++ {
-		itemType := structObj.Field(j).Type()
-		name := f.Name + f.Type.Field(j).Name
+func setStructVal(fieldType reflect.StructField, fieldVal reflect.Value, objMap map[string]any) {
+	for j := 0; j < fieldVal.NumField(); j++ {
+		itemType := fieldVal.Field(j).Type()
+		name := fieldType.Name + fieldType.Type.Field(j).Name
 		objVal := objMap[name]
 		if objVal == nil {
 			continue
 		}
 		objType := reflect.TypeOf(objVal)
 		if itemType.Kind() == objType.Kind() {
-			tsVal.Field(i).Field(j).Set(reflect.ValueOf(objVal))
+			fieldVal.Field(j).Set(reflect.ValueOf(objVal))
 		}
 	}
 	// 转换完成之后 执行初始化MapperInit方法
 
-	defer execInitFunc(tsVal.Field(i).Addr())
+	defer execInitFunc(fieldVal.Addr())
 	//defer execInitFunc(reflect.ValueOf(tsVal.Field(i).Interface()))
 }
 

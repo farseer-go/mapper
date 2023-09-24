@@ -43,11 +43,28 @@ func (vo *ClientVO) MapperInit() {
 }
 
 type UserVO struct {
+	Id     int64
+	Name   string
+	User3  UserVO3
+	Array3 []string
+}
+type UserVO2 struct {
+	Id     int64
+	Name   string
+	User4  UserVO4
+	Array3 []string
+}
+type UserVO3 struct {
 	Id   int64
 	Name string
 }
-
+type UserVO4 struct {
+	Id   int64
+	Name string
+}
 type TaskDO struct {
+	Array        []UserVO2
+	ArrayStr     []string
 	Id           int
 	Client       ClientVO
 	Status       State
@@ -76,6 +93,8 @@ type TaskDO struct {
 }
 
 type TaskDTO struct {
+	Array        []UserVO
+	ArrayStr     []string
 	Id           int
 	ClientId     int64
 	ClientIp     string
@@ -113,7 +132,13 @@ func (do *TaskDO) MapperInit() {
 }
 
 func TestDtoToDo(t *testing.T) {
+	arrayUser := make([]UserVO, 1)
+	arrayStr := make([]string, 1)
+	arrayStr[0] = "数组字符串测试"
+	arrayUser[0] = UserVO{Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}}
 	dto := TaskDTO{
+		Array:      arrayUser,
+		ArrayStr:   arrayStr,
 		Id:         1,
 		ClientId:   1000,
 		ClientIp:   "127.0.0.1",
