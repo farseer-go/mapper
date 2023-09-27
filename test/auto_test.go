@@ -43,18 +43,26 @@ func (vo *ClientVO) MapperInit() {
 }
 
 type UserVO struct {
+	//List2  collections.List[CountVO2]
+	List   collections.List[CountVO]
 	Id     int64
 	Name   string
 	User3  UserVO3
 	Array3 []string
 	Count  map[int]*CountVO
+	Count2 map[int]CountVO
+	Count3 map[int]CountVO2
 }
 type UserVO2 struct {
+	//List2  collections.List[CountVO]
+	List   collections.List[CountVO]
 	Id     int64
 	Name   string
 	User3  UserVO4
 	Array3 []string
 	Count  map[int]*CountVO2
+	Count2 map[int]CountVO2
+	Count3 map[int]CountVO2
 }
 type UserVO3 struct {
 	Id   int64
@@ -143,10 +151,15 @@ func (do *TaskDO) MapperInit() {
 func TestDtoToDo(t *testing.T) {
 	mapArray := make(map[int]*CountVO, 1)
 	mapArray[0] = &CountVO{Count: 999}
+	mapArray2 := make(map[int]CountVO)
+	mapArray2[0] = CountVO{Count: 888}
+	mapArray3 := make(map[int]CountVO2)
+	mapArray3[0] = CountVO2{Count: 777}
 	arrayUser := make([]UserVO, 1)
 	arrayStr := make([]string, 1)
 	arrayStr[0] = "数组字符串测试"
-	arrayUser[0] = UserVO{Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray}
+	lst := collections.NewList[CountVO](CountVO{Count: 123})
+	arrayUser[0] = UserVO{List: lst, Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray, Count2: mapArray2, Count3: mapArray3}
 	dto := TaskDTO{
 		Array:      arrayUser,
 		ArrayStr:   arrayStr,

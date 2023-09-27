@@ -94,7 +94,7 @@ func setSliceVal(objVal any, fieldVal reflect.Value) {
 						continue
 					}
 					if itemSubValue.Kind() == reflect.Struct {
-						setSliceValStruct(itemSubValue, field)
+						setStruct(itemSubValue, field)
 					} else if itemSubValue.Kind() == reflect.Slice {
 						setSliceVal(itemSubValue.Interface(), field)
 					} else if itemSubValue.Kind() == reflect.Map {
@@ -127,7 +127,7 @@ func setSliceValMap(objVal any, fieldVal reflect.Value) {
 			vKind := reflect.TypeOf(v.Elem().Interface()).Kind()
 			if vKind == reflect.Struct {
 				newObj := reflect.New(fieldVal.Type().Elem().Elem())
-				setMapValStruct(v.Elem(), newObj)
+				setStruct(v.Elem(), newObj)
 				fieldVal.SetMapIndex(k, newObj)
 			} else if vKind == reflect.Slice {
 				setSliceVal(v.Elem().Interface(), fieldVal)
@@ -139,7 +139,9 @@ func setSliceValMap(objVal any, fieldVal reflect.Value) {
 		} else {
 			//非指针类型的
 			if item.Kind() == reflect.Struct {
-				setSliceValStruct(reflect.ValueOf(value), fieldVal)
+				newObj := reflect.New(fieldVal.Type().Elem())
+				setStruct(v, newObj)
+				fieldVal.SetMapIndex(k, newObj.Elem())
 			} else if item.Kind() == reflect.Slice {
 				setSliceVal(value, fieldVal)
 			} else if item.Kind() == reflect.Map {
@@ -152,47 +154,52 @@ func setSliceValMap(objVal any, fieldVal reflect.Value) {
 	}
 }
 
-// Map结构赋值
-func setMapValStruct(fieldVal reflect.Value, fields reflect.Value) {
-	for j := 0; j < fieldVal.NumField(); j++ {
-		itemSubValue := fieldVal.Field(j)
-		itemSubType := fieldVal.Type().Field(j)
-		name := itemSubType.Name
-		//相同字段赋值
-		field := fields.Elem().FieldByName(name)
-		if itemSubValue.Kind() == reflect.Struct {
-			setMapValStruct(itemSubValue, fields)
-		} else if itemSubValue.Kind() == reflect.Slice {
-			setSliceVal(itemSubValue.Elem(), fields)
-		} else {
-			field.Set(itemSubValue)
-		}
-	}
-	// 转换完成之后 执行初始化MapperInit方法
-
-	defer execInitFunc(fieldVal.Addr())
-	//defer execInitFunc(reflect.ValueOf(tsVal.Field(i).Interface()))
-}
-
 // 数组结构赋值
-func setSliceValStruct(fieldVal reflect.Value, fields reflect.Value) {
-	for j := 0; j < fieldVal.NumField(); j++ {
-		itemSubValue := fieldVal.Field(j)
-		itemSubType := fieldVal.Type().Field(j)
-		name := itemSubType.Name
-		//相同字段赋值
-		field := fields.FieldByName(name)
-		if itemSubValue.Kind() == reflect.Struct {
-			setSliceValStruct(itemSubValue, fields)
-		} else if itemSubValue.Kind() == reflect.Slice {
-			setSliceVal(itemSubValue.Elem(), fields)
-		} else {
-			field.Set(itemSubValue)
+func setStruct(fieldVal reflect.Value, fields reflect.Value) {
+	//list ,pagelist ,dic 转换 ，直接赋值
+	if types.IsCollections(fieldVal.Type()) {
+		setListVal(fieldVal.Interface(), fields)
+	} else {
+		for j := 0; j < fieldVal.NumField(); j++ {
+			itemSubValue := fieldVal.Field(j)
+			itemSubType := fieldVal.Type().Field(j)
+			name := itemSubType.Name
+			// 指针类型
+			if fields.Type().Kind() == reflect.Pointer {
+				field := fields.Elem().FieldByName(name)
+				if !field.IsValid() {
+					continue
+				}
+				if itemSubValue.Kind() == reflect.Struct {
+					setStruct(itemSubValue, fields)
+				} else if itemSubValue.Kind() == reflect.Slice {
+					setSliceVal(itemSubValue.Elem(), fields)
+				} else {
+					field.Set(itemSubValue)
+				}
+			} else {
+				// 非指针类型
+				field := fields.FieldByName(name)
+				if !field.IsValid() {
+					continue
+				}
+				if itemSubValue.Kind() == reflect.Struct {
+					setStruct(itemSubValue, fields)
+				} else if itemSubValue.Kind() == reflect.Slice {
+					setSliceVal(itemSubValue.Elem(), fields)
+				} else {
+					field.Set(itemSubValue)
+				}
+			}
+
 		}
 	}
-	// 转换完成之后 执行初始化MapperInit方法
 
-	defer execInitFunc(fieldVal.Addr())
+	// 转换完成之后 执行初始化MapperInit方法
+	if fieldVal.CanAddr() {
+		defer execInitFunc(fieldVal.Addr())
+	}
+
 	//defer execInitFunc(reflect.ValueOf(tsVal.Field(i).Interface()))
 }
 
@@ -206,6 +213,23 @@ func setVal(objVal any, fieldVal reflect.Value, fieldType reflect.StructField) {
 		} else {
 			convert := parse.ConvertValue(objVal, fieldType.Type)
 			fieldVal.Set(convert)
+		}
+	}
+}
+func setListVal(objVal any, fieldVal reflect.Value) {
+	if objVal != nil {
+		objType := reflect.TypeOf(objVal)
+		if fieldVal.Type().String() == objType.String() {
+			fieldVal.Set(reflect.ValueOf(objVal))
+		} else {
+			//if fieldVal.Type().Kind() == reflect.Struct {
+			//	//newObj := reflect.New(fieldVal.Type())
+			//	//setStruct(reflect.ValueOf(objVal), newObj.Elem())
+			//	//fieldVal.Set(newObj.Elem())
+			//} else {
+			convert := parse.ConvertValue(objVal, fieldVal.Type())
+			fieldVal.Set(convert)
+			//}
 		}
 	}
 }
