@@ -319,10 +319,11 @@ func StructToMap(fromObjPtr any, dic any) error {
 	//	return fmt.Errorf("toDTO must be a struct pointer")
 	//}
 	fsVal := reflect.Indirect(reflect.ValueOf(fromObjPtr))
+	dicValue := reflect.ValueOf(dic)
 	for i := 0; i < fsVal.NumField(); i++ {
 		itemName := fsVal.Type().Field(i).Name
 		itemValue := fsVal.Field(i)
-		reflect.ValueOf(dic).SetMapIndex(reflect.ValueOf(itemName), itemValue)
+		dicValue.SetMapIndex(reflect.ValueOf(itemName), itemValue)
 	}
 	return nil
 }
