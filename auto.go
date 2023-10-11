@@ -44,11 +44,12 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 		fieldVal := tsVal.Field(i)
 		item := fieldVal.Type()
 		objVal := objMap[fieldType.Name]
-		if reflect.ValueOf(objVal).Kind() == reflect.Invalid {
-			continue
-		}
+
 		//结构体赋值
 		if _, isList := types.IsList(fieldVal); isList {
+			if reflect.ValueOf(objVal).Kind() == reflect.Invalid {
+				continue
+			}
 			sourceType := types.GetListItemArrayType(item)
 			newArr := reflect.New(sourceType)
 			toList := types.ListNew(item)
@@ -72,6 +73,9 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 			}
 
 		} else if item.Kind() == reflect.Slice {
+			if reflect.ValueOf(objVal).Kind() == reflect.Invalid {
+				continue
+			}
 			setSliceVal(reflect.ValueOf(objVal), fieldVal)
 		} else {
 			//正常字段转换

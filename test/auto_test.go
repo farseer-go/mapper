@@ -80,12 +80,13 @@ type CountVO2 struct {
 	Count int // 出现的次数
 }
 type TaskDO struct {
-	List         collections.List[CountVO2]
-	List2        collections.List[CountVO]
-	Array        []UserVO2
-	ArrayStr     []string
-	Id           int
-	Client       ClientVO
+	Client   ClientVO
+	List     collections.List[CountVO2]
+	List2    collections.List[CountVO]
+	Array    []UserVO2
+	ArrayStr []string
+	Id       int
+
 	Status       State
 	UserId       int64
 	UserName     string
@@ -166,14 +167,14 @@ func TestDtoToDo(t *testing.T) {
 	lst2 := collections.NewList[CountVO](CountVO{Count: 464})
 	arrayUser[0] = UserVO{List: lst, Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray, Count2: mapArray2, Count3: mapArray3}
 	dto := TaskDTO{
+		ClientId:   1000,
+		ClientIp:   "127.0.0.1",
+		ClientName: "node",
 		List:       lst,
 		List2:      lst2,
 		Array:      arrayUser,
 		ArrayStr:   arrayStr,
 		Id:         1,
-		ClientId:   1000,
-		ClientIp:   "127.0.0.1",
-		ClientName: "node",
 		Status:     Pending,
 		User: UserVO{
 			Id:   1,
@@ -204,7 +205,8 @@ func TestDtoToDo(t *testing.T) {
 	var do TaskDO
 	_ = mapper.Auto(dto, &do)
 
-	assert.Equal(t, dto.Id+1, do.Id)
+	assert.Equal(t, dto.List.Index(0).Count, do.List.Index(0).Count)
+	assert.Equal(t, dto.List2.Index(0).Count, do.List2.Index(0).Count)
 	assert.Equal(t, dto.ClientId+1, do.Client.Id)
 	assert.Equal(t, dto.ClientIp, do.Client.Ip)
 	assert.Equal(t, dto.ClientName, do.Client.Name)
