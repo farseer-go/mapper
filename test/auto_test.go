@@ -80,6 +80,8 @@ type CountVO2 struct {
 	Count int // 出现的次数
 }
 type TaskDO struct {
+	List         collections.List[CountVO2]
+	List2        collections.List[CountVO]
 	Array        []UserVO2
 	ArrayStr     []string
 	Id           int
@@ -110,6 +112,8 @@ type TaskDO struct {
 }
 
 type TaskDTO struct {
+	List         collections.List[CountVO]
+	List2        collections.List[CountVO]
 	Array        []UserVO
 	ArrayStr     []string
 	Id           int
@@ -159,8 +163,11 @@ func TestDtoToDo(t *testing.T) {
 	arrayStr := make([]string, 1)
 	arrayStr[0] = "数组字符串测试"
 	lst := collections.NewList[CountVO](CountVO{Count: 123})
+	lst2 := collections.NewList[CountVO](CountVO{Count: 464})
 	arrayUser[0] = UserVO{List: lst, Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray, Count2: mapArray2, Count3: mapArray3}
 	dto := TaskDTO{
+		List:       lst,
+		List2:      lst2,
 		Array:      arrayUser,
 		ArrayStr:   arrayStr,
 		Id:         1,

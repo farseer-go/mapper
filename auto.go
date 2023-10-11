@@ -45,7 +45,19 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 		item := fieldVal.Type()
 		objVal := objMap[fieldType.Name]
 		//结构体赋值
-		if item.Kind() == reflect.Struct && item.String() != "dateTime.DateTime" {
+		if _, isList := types.IsList(fieldVal); isList {
+			sourceType := types.GetListItemArrayType(item)
+			newArr := reflect.New(sourceType)
+			toList := types.ListNew(item)
+			setSliceVal(reflect.ValueOf(objVal), newArr)
+			sliArray := reflect.Indirect(newArr)
+			for i := 0; i < sliArray.Len(); i++ {
+				//获取数组内的元素
+				structObj := sliArray.Index(i)
+				types.ListAdd(&toList, structObj.Interface())
+			}
+			fieldVal.Set(toList.Elem())
+		} else if item.Kind() == reflect.Struct && item.String() != "dateTime.DateTime" {
 			//list ,pagelist ,dic 转换 ，直接赋值
 			if types.IsCollections(fieldVal.Type()) {
 				setVal(objVal, fieldVal, fieldType)
@@ -57,7 +69,7 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 			}
 
 		} else if item.Kind() == reflect.Slice {
-			setSliceVal(objVal, fieldVal)
+			setSliceVal(reflect.ValueOf(objVal), fieldVal)
 		} else {
 			//正常字段转换
 			setVal(objVal, fieldVal, fieldType)
@@ -66,50 +78,64 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 }
 
 // 数组设置值
-func setSliceVal(objVal any, fieldVal reflect.Value) {
+func setSliceVal(objVal reflect.Value, fieldVal reflect.Value) {
 	//获取到具体的值信息
-	if objVal != nil {
-		//数组对象
-		tsValType := fieldVal.Type()
-		//要转换的类型
-		itemType := tsValType.Elem()
-		// 取得数组中元素的类型
-		newArr := reflect.MakeSlice(tsValType, 0, 0)
-		sliArray := reflect.Indirect(reflect.ValueOf(objVal))
-		for i := 0; i < sliArray.Len(); i++ {
-			//获取数组内的元素
-			structObj := sliArray.Index(i)
-			if structObj.Kind() == reflect.Struct && itemType.String() != structObj.Type().String() {
-				newItem := reflect.New(itemType)
-				// 要转换对象的值
-				newItemField := newItem.Elem()
-				for j := 0; j < structObj.NumField(); j++ {
-					itemSubValue := structObj.Field(j)
-					itemSubType := structObj.Type().Field(j)
-					name := itemSubType.Name
-					//相同字段赋值
-					field := newItemField.FieldByName(name)
-					//没有发现相同字段的直接跳过
-					if !field.IsValid() {
-						continue
-					}
-					if itemSubValue.Kind() == reflect.Struct {
-						setStruct(itemSubValue, field)
-					} else if itemSubValue.Kind() == reflect.Slice {
-						setSliceVal(itemSubValue.Interface(), field)
-					} else if itemSubValue.Kind() == reflect.Map {
-						setSliceValMap(itemSubValue.Interface(), field)
-					} else {
-						field.Set(itemSubValue)
-					}
-				}
-				newArr = reflect.Append(newArr, newItem.Elem())
-			} else {
-				newArr = reflect.Append(newArr, structObj)
-			}
+	//if objVal != nil {
+	//数组对象
+	tsValType := fieldVal.Type()
+	if tsValType.Kind() == reflect.Pointer {
+		tsValType = tsValType.Elem()
+	}
+	if objVal.Kind() == reflect.Pointer {
+		objVal = objVal.Elem()
+	}
+	//要转换的类型
+	itemType := tsValType.Elem()
+	// 取得数组中元素的类型
+	newArr := reflect.MakeSlice(tsValType, 0, 0)
+	sliArray := reflect.Indirect(objVal)
+	for i := 0; i < sliArray.Len(); i++ {
+		//获取数组内的元素
+		structObj := sliArray.Index(i)
+		if structObj.Type().Kind() == reflect.Interface {
+			structObj = structObj.Elem()
 		}
+		if structObj.Kind() == reflect.Struct && itemType.String() != structObj.Type().String() {
+			newItem := reflect.New(itemType)
+			// 要转换对象的值
+			newItemField := newItem.Elem()
+			for j := 0; j < structObj.NumField(); j++ {
+				itemSubValue := structObj.Field(j)
+				itemSubType := structObj.Type().Field(j)
+				name := itemSubType.Name
+				//相同字段赋值
+				field := newItemField.FieldByName(name)
+				//没有发现相同字段的直接跳过
+				if !field.IsValid() {
+					continue
+				}
+				if itemSubValue.Kind() == reflect.Struct {
+					setStruct(itemSubValue, field)
+				} else if itemSubValue.Kind() == reflect.Slice {
+					setSliceVal(itemSubValue, field)
+				} else if itemSubValue.Kind() == reflect.Map {
+					setSliceValMap(itemSubValue.Interface(), field)
+				} else {
+					field.Set(itemSubValue)
+				}
+			}
+			newArr = reflect.Append(newArr, newItem.Elem())
+		} else {
+			newArr = reflect.Append(newArr, structObj)
+		}
+	}
+	if fieldVal.Kind() == reflect.Pointer {
+		fieldVal.Elem().Set(newArr)
+	} else {
 		fieldVal.Set(newArr)
 	}
+
+	//}
 }
 
 // map赋值
@@ -130,7 +156,7 @@ func setSliceValMap(objVal any, fieldVal reflect.Value) {
 				setStruct(v.Elem(), newObj)
 				fieldVal.SetMapIndex(k, newObj)
 			} else if vKind == reflect.Slice {
-				setSliceVal(v.Elem().Interface(), fieldVal)
+				setSliceVal(v.Elem(), fieldVal)
 			} else if vKind == reflect.Map {
 				setSliceValMap(v.Elem().Interface(), fieldVal)
 			} else {
@@ -143,7 +169,7 @@ func setSliceValMap(objVal any, fieldVal reflect.Value) {
 				setStruct(v, newObj)
 				fieldVal.SetMapIndex(k, newObj.Elem())
 			} else if item.Kind() == reflect.Slice {
-				setSliceVal(value, fieldVal)
+				setSliceVal(v, fieldVal)
 			} else if item.Kind() == reflect.Map {
 				setSliceValMap(value, fieldVal)
 			} else {
@@ -222,14 +248,21 @@ func setListVal(objVal any, fieldVal reflect.Value) {
 		if fieldVal.Type().String() == objType.String() {
 			fieldVal.Set(reflect.ValueOf(objVal))
 		} else {
-			//if fieldVal.Type().Kind() == reflect.Struct {
-			//	//newObj := reflect.New(fieldVal.Type())
-			//	//setStruct(reflect.ValueOf(objVal), newObj.Elem())
-			//	//fieldVal.Set(newObj.Elem())
-			//} else {
-			convert := parse.ConvertValue(objVal, fieldVal.Type())
-			fieldVal.Set(convert)
-			//}
+			if fieldVal.Type().Kind() == reflect.Struct {
+				newObj := reflect.New(fieldVal.Type())
+				val := reflect.ValueOf(objVal)
+				itemType := val.Field(0) //.Type()
+				toInfo := reflect.New(fieldVal.Type().Field(0).Type.Elem())
+				setSliceVal(itemType, toInfo)
+				if toInfo.Elem().Len() > 0 {
+					newObj.Set(toInfo)
+				}
+				//setStruct(reflect.ValueOf(objVal), newObj.Elem())
+				fieldVal.Set(newObj.Elem())
+			} else {
+				convert := parse.ConvertValue(objVal, fieldVal.Type())
+				fieldVal.Set(convert)
+			}
 		}
 	}
 }
@@ -264,7 +297,16 @@ func analysis(fsVal reflect.Value, objMap map[string]any) {
 		if itemType.Kind() == reflect.Interface || !field.IsExported() {
 			continue
 		}
-		if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" {
+		if _, isList := types.IsList(fsVal.Field(i)); isList {
+			array := types.ListToArray(fsVal.Field(i))
+			//toArrayType := types.GetListItemArrayType(itemType)
+			//newArr := reflect.MakeSlice(toArrayType, 0, 0)
+			//for i := 0; i < len(array); i++ {
+			//	item := array[i]
+			//	newArr = reflect.AppendSlice(newArr, reflect.ValueOf(item))
+			//}
+			objMap[field.Name] = array
+		} else if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" {
 			structAnalysis(field.Name, field.Name, fsVal.Field(i), field.Type, objMap)
 		} else {
 			// 非结构体遍历
@@ -280,7 +322,7 @@ func structAnalysis(parentName string, fieldName string, fromStructVal reflect.V
 	for i := 0; i < fromStructVal.NumField(); i++ {
 		fieldVal := fromStructVal.Field(i)
 		itemType := fieldVal.Type()
-		// go 基础类型
+
 		if types.IsGoBasicType(itemType) {
 			itemName := fieldName + fromStructType.Field(i).Name
 			itemValue := fieldVal.Interface()
