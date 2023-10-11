@@ -44,6 +44,9 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 		fieldVal := tsVal.Field(i)
 		item := fieldVal.Type()
 		objVal := objMap[fieldType.Name]
+		if reflect.ValueOf(objVal).Kind() == reflect.Invalid {
+			continue
+		}
 		//结构体赋值
 		if _, isList := types.IsList(fieldVal); isList {
 			sourceType := types.GetListItemArrayType(item)
