@@ -67,6 +67,18 @@ func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
 		//_ = mapper.MapperSlice(items, &arr)
 		return collections.NewList[TEntity](arr...)
 	}
+
+	toArrayMethod := sliceOrListOrListAnyValue.MethodByName("ToArray")
+	if !toArrayMethod.IsNil() {
+		//var arr []TEntity
+		arrValue := toArrayMethod.Call(nil)[0]
+		var items []TEntity
+		for i := 0; i < arrValue.Len(); i++ {
+			item := Single[TEntity](arrValue.Index(i).Interface())
+			items = append(items, item)
+		}
+		return collections.NewList[TEntity](items...)
+	}
 	panic("sliceOrListOrListAny入参必须为切片或collections.List、collections.ListAny集合")
 }
 
