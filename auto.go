@@ -36,6 +36,37 @@ func Auto(from, to any) error {
 	return nil
 }
 
+// 解析结构体
+func analysis(fsVal reflect.Value, objMap map[string]any) {
+	for i := 0; i < fsVal.NumField(); i++ {
+		itemType := fsVal.Field(i).Type()
+		field := fsVal.Type().Field(i)
+
+		// 结构体遍历
+		if itemType.Kind() == reflect.Interface || !field.IsExported() {
+			continue
+		}
+		if _, isList := types.IsList(fsVal.Field(i)); isList {
+			array := types.ListToArray(fsVal.Field(i))
+			//toArrayType := types.GetListItemArrayType(itemType)
+			//newArr := reflect.MakeSlice(toArrayType, 0, 0)
+			//for i := 0; i < len(array); i++ {
+			//	item := array[i]
+			//	newArr = reflect.AppendSlice(newArr, reflect.ValueOf(item))
+			//}
+			objMap[field.Name] = array
+		} else if len(itemType.String()) > 8 && itemType.String()[len(itemType.String())-8:] == "ListType" {
+			objMap[field.Name] = fsVal.Field(i).Interface()
+		} else if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" {
+			structAnalysis(field.Name, field.Name, fsVal.Field(i), field.Type, objMap)
+		} else {
+			// 非结构体遍历
+			itemValue := fsVal.Field(i).Interface()
+			objMap[field.Name] = itemValue
+		}
+	}
+}
+
 // 赋值操作
 func assignment(tsVal reflect.Value, objMap map[string]any) {
 	for i := 0; i < tsVal.NumField(); i++ {
@@ -61,6 +92,8 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 				types.ListAdd(&toList, structObj.Interface())
 			}
 			fieldVal.Set(toList.Elem())
+		} else if len(item.String()) > 8 && item.String()[len(item.String())-8:] == "ListType" {
+			fieldVal.Set(reflect.ValueOf(objVal))
 		} else if item.Kind() == reflect.Struct && item.String() != "dateTime.DateTime" {
 			//list ,pagelist ,dic 转换 ，直接赋值
 			if types.IsCollections(fieldVal.Type()) {
@@ -294,35 +327,6 @@ func setStructVal(fieldType reflect.StructField, fieldVal reflect.Value, objMap 
 	//defer execInitFunc(reflect.ValueOf(tsVal.Field(i).Interface()))
 }
 
-// 解析结构体
-func analysis(fsVal reflect.Value, objMap map[string]any) {
-	for i := 0; i < fsVal.NumField(); i++ {
-		itemType := fsVal.Field(i).Type()
-		field := fsVal.Type().Field(i)
-
-		// 结构体遍历
-		if itemType.Kind() == reflect.Interface || !field.IsExported() {
-			continue
-		}
-		if _, isList := types.IsList(fsVal.Field(i)); isList {
-			array := types.ListToArray(fsVal.Field(i))
-			//toArrayType := types.GetListItemArrayType(itemType)
-			//newArr := reflect.MakeSlice(toArrayType, 0, 0)
-			//for i := 0; i < len(array); i++ {
-			//	item := array[i]
-			//	newArr = reflect.AppendSlice(newArr, reflect.ValueOf(item))
-			//}
-			objMap[field.Name] = array
-		} else if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" {
-			structAnalysis(field.Name, field.Name, fsVal.Field(i), field.Type, objMap)
-		} else {
-			// 非结构体遍历
-			itemValue := fsVal.Field(i).Interface()
-			objMap[field.Name] = itemValue
-		}
-	}
-}
-
 // 结构体递归解析
 func structAnalysis(parentName string, fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]any) {
 	// 转换完成之后 执行初始化MapperInit方法
@@ -345,6 +349,12 @@ func structAnalysis(parentName string, fieldName string, fromStructVal reflect.V
 			itemValue := fieldVal.Interface()
 			objMap[itemName] = itemValue
 		}
+
+		//else if itemType.Kind() == reflect.Pointer {
+		//	itemName := fieldName
+		//	itemValue := fieldVal
+		//	objMap[itemName] = itemValue
+		//}
 	}
 }
 

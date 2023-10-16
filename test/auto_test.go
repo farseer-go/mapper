@@ -42,6 +42,8 @@ func (vo *ClientVO) MapperInit() {
 	println("已执行 ClientVO 初始化方法 MapperInit ")
 }
 
+type ListType collections.List[CountVO]
+
 type UserVO struct {
 	//List2  collections.List[CountVO2]
 	List   collections.List[CountVO]
@@ -80,6 +82,7 @@ type CountVO2 struct {
 	Count int // 出现的次数
 }
 type TaskDO struct {
+	LstType  ListType
 	Client   ClientVO
 	List     collections.List[CountVO2]
 	List2    collections.List[CountVO]
@@ -113,6 +116,7 @@ type TaskDO struct {
 }
 
 type TaskDTO struct {
+	LstType      ListType
 	List         collections.List[CountVO]
 	List2        collections.List[CountVO]
 	Array        []UserVO
@@ -163,10 +167,12 @@ func TestDtoToDo(t *testing.T) {
 	arrayUser := make([]UserVO, 1)
 	arrayStr := make([]string, 1)
 	arrayStr[0] = "数组字符串测试"
+	lst3 := ListType(collections.NewList[CountVO](CountVO{Count: 678}))
 	lst := collections.NewList[CountVO](CountVO{Count: 123})
 	lst2 := collections.NewList[CountVO](CountVO{Count: 464})
 	arrayUser[0] = UserVO{List: lst, Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray, Count2: mapArray2, Count3: mapArray3}
 	dto := TaskDTO{
+		LstType:    lst3,
 		ClientId:   1000,
 		ClientIp:   "127.0.0.1",
 		ClientName: "node",
@@ -205,6 +211,7 @@ func TestDtoToDo(t *testing.T) {
 	var do TaskDO
 	_ = mapper.Auto(dto, &do)
 
+	assert.Equal(t, dto.LstType.Index(0).Count, do.LstType.Index(0).Count)
 	assert.Equal(t, dto.List.Index(0).Count, do.List.Index(0).Count)
 	assert.Equal(t, dto.List2.Index(0).Count, do.List2.Index(0).Count)
 	assert.Equal(t, dto.ClientId+1, do.Client.Id)
