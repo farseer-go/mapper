@@ -93,6 +93,9 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 			}
 			fieldVal.Set(toList.Elem())
 		} else if len(item.String()) > 8 && item.String()[len(item.String())-8:] == "ListType" {
+			if reflect.ValueOf(objVal).Kind() == reflect.Invalid {
+				continue
+			}
 			fieldVal.Set(reflect.ValueOf(objVal))
 		} else if item.Kind() == reflect.Struct && item.String() != "dateTime.DateTime" {
 			//list ,pagelist ,dic 转换 ，直接赋值
