@@ -57,7 +57,7 @@ func analysis(fsVal reflect.Value, objMap map[string]any) {
 			objMap[field.Name] = array
 		} else if len(itemType.String()) > 8 && itemType.String()[len(itemType.String())-8:] == "ListType" {
 			objMap[field.Name] = fsVal.Field(i).Interface()
-		} else if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" {
+		} else if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" && itemType.String() != "decimal.Decimal" {
 			structAnalysis(field.Name, field.Name, fsVal.Field(i), field.Type, objMap)
 		} else {
 			// 非结构体遍历
@@ -97,7 +97,7 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 				continue
 			}
 			fieldVal.Set(reflect.ValueOf(objVal))
-		} else if item.Kind() == reflect.Struct && item.String() != "dateTime.DateTime" {
+		} else if item.Kind() == reflect.Struct && item.String() != "dateTime.DateTime" && item.String() != "decimal.Decimal" {
 			//list ,pagelist ,dic 转换 ，直接赋值
 			if types.IsCollections(fieldVal.Type()) {
 				setVal(objVal, fieldVal, fieldType)

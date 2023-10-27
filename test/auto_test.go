@@ -4,6 +4,7 @@ import (
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/dateTime"
 	"github.com/farseer-go/mapper"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
@@ -82,6 +83,7 @@ type CountVO2 struct {
 	Count int // 出现的次数
 }
 type TaskDO struct {
+	Dec      decimal.Decimal
 	LstType  ListType
 	Client   ClientVO
 	List     collections.List[CountVO2]
@@ -116,6 +118,7 @@ type TaskDO struct {
 }
 
 type TaskDTO struct {
+	Dec          decimal.Decimal
 	LstType      ListType
 	List         collections.List[CountVO]
 	List2        collections.List[CountVO]
@@ -172,6 +175,7 @@ func TestDtoToDo(t *testing.T) {
 	lst2 := collections.NewList[CountVO](CountVO{Count: 464})
 	arrayUser[0] = UserVO{List: lst, Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray, Count2: mapArray2, Count3: mapArray3}
 	dto := TaskDTO{
+		Dec:        decimal.NewFromFloat32(12.22),
 		LstType:    lst3,
 		ClientId:   1000,
 		ClientIp:   "127.0.0.1",
