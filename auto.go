@@ -89,7 +89,7 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 			for i := 0; i < sliArray.Len(); i++ {
 				//获取数组内的元素
 				structObj := sliArray.Index(i)
-				types.ListAdd(&toList, structObj.Interface())
+				types.ListAdd(toList, structObj.Interface())
 			}
 			fieldVal.Set(toList.Elem())
 		} else if len(item.String()) > 8 && item.String()[len(item.String())-8:] == "ListType" {
