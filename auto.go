@@ -385,7 +385,9 @@ func StructToMap(fromObjPtr any, dic any) error {
 	for i := 0; i < fsVal.NumField(); i++ {
 		itemName := fsVal.Type().Field(i).Name
 		itemValue := fsVal.Field(i)
-		dicValue.SetMapIndex(reflect.ValueOf(itemName), itemValue)
+		if fsVal.Type().Field(i).Type.Kind() != reflect.Interface {
+			dicValue.SetMapIndex(reflect.ValueOf(itemName), itemValue)
+		}
 	}
 	return nil
 }
