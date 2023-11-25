@@ -8,6 +8,7 @@ import (
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // Auto 对象相互转换
@@ -279,6 +280,15 @@ func setVal(objVal any, fieldVal reflect.Value, fieldType reflect.StructField) {
 		objType := reflect.TypeOf(objVal)
 		if fieldType.Type.String() == objType.String() {
 			fieldVal.Set(reflect.ValueOf(objVal))
+		} else if fieldType.Type.String() == "string" && objType.String() == "time.Time" {
+			stringValue := reflect.ValueOf(objVal).Interface().(time.Time).Format("2006-01-02 15:04:05")
+			fieldVal.Set(reflect.ValueOf(stringValue))
+		} else if fieldType.Type.String() == "time.Time" && objType.String() == "string" {
+			// 将字符串转换为时间类型并赋值给time.Time类型字段
+			timeValue, err := time.Parse("2006-01-02 15:04:05", reflect.ValueOf(objVal).Interface().(string))
+			if err == nil {
+				fieldVal.Set(reflect.ValueOf(timeValue))
+			}
 		} else {
 			convert := parse.ConvertValue(objVal, fieldType.Type)
 			fieldVal.Set(convert)

@@ -83,6 +83,7 @@ type CountVO2 struct {
 	Count int // 出现的次数
 }
 type TaskDO struct {
+	Time     string
 	Dec      decimal.Decimal
 	LstType  ListType
 	Client   ClientVO
@@ -118,6 +119,7 @@ type TaskDO struct {
 }
 
 type TaskDTO struct {
+	Time         time.Time
 	Dec          decimal.Decimal
 	LstType      ListType
 	List         collections.List[CountVO]
@@ -175,6 +177,7 @@ func TestDtoToDo(t *testing.T) {
 	lst2 := collections.NewList[CountVO](CountVO{Count: 464})
 	arrayUser[0] = UserVO{List: lst, Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray, Count2: mapArray2, Count3: mapArray3}
 	dto := TaskDTO{
+		Time:       time.Now(),
 		Dec:        decimal.NewFromFloat32(12.22),
 		LstType:    lst3,
 		ClientId:   1000,
