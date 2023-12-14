@@ -349,8 +349,9 @@ func structAnalysis(parentName string, fieldName string, fromStructVal reflect.V
 
 		if types.IsGoBasicType(itemType) {
 			itemName := fieldName + fromStructType.Field(i).Name
-			itemValue := fieldVal.Interface()
-			objMap[itemName] = itemValue
+			if fieldVal.CanInterface(){
+				objMap[itemName] = fieldVal.Interface()
+			}
 			// map
 		} else if itemType.Kind() == reflect.Map {
 			mapAnalysis(parentName, fieldName, fieldVal, objMap)
@@ -359,8 +360,9 @@ func structAnalysis(parentName string, fieldName string, fromStructVal reflect.V
 			structAnalysis(parentName, fromStructType.Field(i).Name, fieldVal, fromStructType.Field(i).Type, objMap)
 		} else if itemType.Kind() == reflect.Slice {
 			itemName := fieldName + fromStructType.Field(i).Name
-			itemValue := fieldVal.Interface()
-			objMap[itemName] = itemValue
+			if fieldVal.CanInterface(){
+				objMap[itemName] = fieldVal.Interface()
+			}
 		}
 
 		//else if itemType.Kind() == reflect.Pointer {
