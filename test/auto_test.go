@@ -70,10 +70,20 @@ type UserVO2 struct {
 type UserVO3 struct {
 	Id   int64
 	Name string
+	Time time.Time
+	Date dateTime.DateTime
+	Dec  decimal.Decimal
+	Stat State
+	Ts   time.Duration
 }
 type UserVO4 struct {
 	Id   int64
 	Name string
+	Time time.Time
+	Date dateTime.DateTime
+	Dec  decimal.Decimal
+	Stat State
+	Ts   time.Duration
 }
 
 type CountVO struct {
@@ -83,15 +93,18 @@ type CountVO2 struct {
 	Count int // 出现的次数
 }
 type TaskDO struct {
-	Time     string
-	Dec      decimal.Decimal
-	LstType  ListType
-	Client   ClientVO
-	List     collections.List[CountVO2]
-	List2    collections.List[CountVO]
-	Array    []UserVO2
-	ArrayStr []string
-	Id       int
+	UserVO4
+	TimeInfo2 dateTime.DateTime
+	TimeInfo  time.Time
+	Time      string
+	Dec       decimal.Decimal
+	LstType   ListType
+	Client    ClientVO
+	List      collections.List[CountVO2]
+	List2     collections.List[CountVO]
+	Array     []UserVO2
+	ArrayStr  []string
+	Id        int
 
 	Status       State
 	UserId       int64
@@ -119,6 +132,9 @@ type TaskDO struct {
 }
 
 type TaskDTO struct {
+	UserVO3
+	TimeInfo2    time.Time
+	TimeInfo     dateTime.DateTime
 	Time         time.Time
 	Dec          decimal.Decimal
 	LstType      ListType
@@ -177,6 +193,8 @@ func TestDtoToDo(t *testing.T) {
 	lst2 := collections.NewList[CountVO](CountVO{Count: 464})
 	arrayUser[0] = UserVO{List: lst, Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray, Count2: mapArray2, Count3: mapArray3}
 	dto := TaskDTO{
+		TimeInfo2:  time.Now(),
+		TimeInfo:   dateTime.Now(),
 		Time:       time.Now(),
 		Dec:        decimal.NewFromFloat32(12.22),
 		LstType:    lst3,
@@ -214,6 +232,13 @@ func TestDtoToDo(t *testing.T) {
 		UpdateAt:     time.Now(),
 		LastUpdateAt: dateTime.Now(),
 	}
+	dto.UserVO3.Name = "USER03"
+	dto.UserVO3.Id = 123123
+	dto.UserVO3.Time = time.Now()
+	dto.UserVO3.Date = dateTime.Now()
+	dto.UserVO3.Stat = Pending
+	dto.UserVO3.Dec = decimal.NewFromFloat32(12.22)
+	dto.UserVO3.Ts = time.Duration(90)
 
 	var do TaskDO
 	_ = mapper.Auto(dto, &do)

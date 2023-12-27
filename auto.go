@@ -59,7 +59,7 @@ func analysis(fsVal reflect.Value, objMap map[string]any) {
 		} else if len(itemType.String()) > 8 && itemType.String()[len(itemType.String())-8:] == "ListType" {
 			objMap[field.Name] = fsVal.Field(i).Interface()
 		} else if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" && itemType.String() != "decimal.Decimal" {
-			structAnalysis(field.Name, field.Name, fsVal.Field(i), field.Type, objMap)
+			structAnalysis(field.Anonymous, field.Name, field.Name, fsVal.Field(i), field.Type, objMap)
 		} else {
 			// 非结构体遍历
 			itemValue := fsVal.Field(i).Interface()
@@ -106,7 +106,7 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 				setVal(objVal, fieldVal, fieldType)
 			} else {
 				//结构内字段转换 赋值
-				setStructVal(fieldType, fieldVal, objMap)
+				setStructVal(fieldType.Anonymous, fieldType, fieldVal, objMap)
 			}
 
 		} else if item.Kind() == reflect.Slice {
@@ -321,10 +321,13 @@ func setListVal(objVal any, fieldVal reflect.Value) {
 }
 
 // 结构赋值
-func setStructVal(fieldType reflect.StructField, fieldVal reflect.Value, objMap map[string]any) {
+func setStructVal(anonymous bool, fieldType reflect.StructField, fieldVal reflect.Value, objMap map[string]any) {
 	for j := 0; j < fieldVal.NumField(); j++ {
 		itemType := fieldVal.Field(j).Type()
 		name := fieldType.Name + fieldType.Type.Field(j).Name
+		if anonymous {
+			name = "anonymous_" + fieldType.Type.Field(j).Name
+		}
 		objVal := objMap[name]
 		if objVal == nil {
 			continue
@@ -341,26 +344,34 @@ func setStructVal(fieldType reflect.StructField, fieldVal reflect.Value, objMap 
 }
 
 // 结构体递归解析
-func structAnalysis(parentName string, fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]any) {
+func structAnalysis(anonymous bool, parentName string, fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]any) {
 	// 转换完成之后 执行初始化MapperInit方法
 	for i := 0; i < fromStructVal.NumField(); i++ {
 		fieldVal := fromStructVal.Field(i)
 		itemType := fieldVal.Type()
-
+		itemName := fieldName + fromStructType.Field(i).Name
+		if anonymous {
+			itemName = "anonymous_" + fromStructType.Field(i).Name
+		}
+		if types.IsDateTime(itemType) {
+			objMap[itemName] = fieldVal.Interface()
+		}
 		if types.IsGoBasicType(itemType) {
-			itemName := fieldName + fromStructType.Field(i).Name
-			if fieldVal.CanInterface(){
+			if fieldVal.CanInterface() {
 				objMap[itemName] = fieldVal.Interface()
 			}
 			// map
 		} else if itemType.Kind() == reflect.Map {
 			mapAnalysis(parentName, fieldName, fieldVal, objMap)
 			// struct
-		} else if itemType.Kind() == reflect.Struct {
-			structAnalysis(parentName, fromStructType.Field(i).Name, fieldVal, fromStructType.Field(i).Type, objMap)
+		} else if itemType.Kind() == reflect.Struct && itemType.String() != "dateTime.DateTime" && itemType.String() != "decimal.Decimal" {
+			structAnalysis(anonymous, parentName, fromStructType.Field(i).Name, fieldVal, fromStructType.Field(i).Type, objMap)
 		} else if itemType.Kind() == reflect.Slice {
-			itemName := fieldName + fromStructType.Field(i).Name
-			if fieldVal.CanInterface(){
+			if fieldVal.CanInterface() {
+				objMap[itemName] = fieldVal.Interface()
+			}
+		} else {
+			if fieldVal.CanInterface() || itemType.String() == "decimal.Decimal" {
 				objMap[itemName] = fieldVal.Interface()
 			}
 		}
