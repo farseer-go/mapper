@@ -333,7 +333,11 @@ func setStructVal(anonymous bool, fieldType reflect.StructField, fieldVal reflec
 			continue
 		}
 		objType := reflect.TypeOf(objVal)
-		if itemType.Kind() == objType.Kind() {
+		if types.IsTime(itemType) && types.IsDateTime(objType) {
+			fieldVal.Field(j).Set(parse.ConvertValue(objVal, itemType))
+		} else if types.IsDateTime(itemType) && types.IsTime(objType) {
+			fieldVal.Field(j).Set(parse.ConvertValue(objVal, itemType))
+		} else if itemType.Kind() == objType.Kind() {
 			fieldVal.Field(j).Set(reflect.ValueOf(objVal))
 		}
 	}
@@ -355,8 +359,7 @@ func structAnalysis(anonymous bool, parentName string, fieldName string, fromStr
 		}
 		if types.IsDateTime(itemType) {
 			objMap[itemName] = fieldVal.Interface()
-		}
-		if types.IsGoBasicType(itemType) {
+		} else if types.IsGoBasicType(itemType) {
 			if fieldVal.CanInterface() {
 				objMap[itemName] = fieldVal.Interface()
 			}

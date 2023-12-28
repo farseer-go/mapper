@@ -68,22 +68,26 @@ type UserVO2 struct {
 	Count3 map[int]CountVO2
 }
 type UserVO3 struct {
-	Id   int64
-	Name string
-	Time time.Time
-	Date dateTime.DateTime
-	Dec  decimal.Decimal
-	Stat State
-	Ts   time.Duration
+	Id    int64
+	Name  string
+	Time2 dateTime.DateTime
+	Time3 time.Time
+	Time  time.Time
+	Date  dateTime.DateTime
+	Dec   decimal.Decimal
+	Stat  State
+	Ts    time.Duration
 }
 type UserVO4 struct {
-	Id   int64
-	Name string
-	Time time.Time
-	Date dateTime.DateTime
-	Dec  decimal.Decimal
-	Stat State
-	Ts   time.Duration
+	Id    int64
+	Name  string
+	Time2 time.Time
+	Time3 dateTime.DateTime
+	Time  time.Time
+	Date  dateTime.DateTime
+	Dec   decimal.Decimal
+	Stat  State
+	Ts    time.Duration
 }
 
 type CountVO struct {
@@ -93,19 +97,18 @@ type CountVO2 struct {
 	Count int // 出现的次数
 }
 type TaskDO struct {
-	UserVO4
-	TimeInfo2 dateTime.DateTime
-	TimeInfo  time.Time
-	Time      string
-	Dec       decimal.Decimal
-	LstType   ListType
-	Client    ClientVO
-	List      collections.List[CountVO2]
-	List2     collections.List[CountVO]
-	Array     []UserVO2
-	ArrayStr  []string
-	Id        int
-
+	UserVO3      UserVO4
+	TimeInfo2    dateTime.DateTime
+	TimeInfo     time.Time
+	Time         string
+	Dec          decimal.Decimal
+	LstType      ListType
+	Client       ClientVO
+	List         collections.List[CountVO2]
+	List2        collections.List[CountVO]
+	Array        []UserVO2
+	ArrayStr     []string
+	Id           int
 	Status       State
 	UserId       int64
 	UserName     string
@@ -132,7 +135,7 @@ type TaskDO struct {
 }
 
 type TaskDTO struct {
-	UserVO3
+	UserVO3      UserVO3
 	TimeInfo2    time.Time
 	TimeInfo     dateTime.DateTime
 	Time         time.Time
@@ -235,6 +238,8 @@ func TestDtoToDo(t *testing.T) {
 	dto.UserVO3.Name = "USER03"
 	dto.UserVO3.Id = 123123
 	dto.UserVO3.Time = time.Now()
+	dto.UserVO3.Time2 = dateTime.Now()
+	dto.UserVO3.Time3 = time.Now()
 	dto.UserVO3.Date = dateTime.Now()
 	dto.UserVO3.Stat = Pending
 	dto.UserVO3.Dec = decimal.NewFromFloat32(12.22)
