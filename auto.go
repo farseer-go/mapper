@@ -339,6 +339,8 @@ func setStructVal(anonymous bool, fieldType reflect.StructField, fieldVal reflec
 			fieldVal.Field(j).Set(parse.ConvertValue(objVal, itemType))
 		} else if itemType.Kind() == objType.Kind() {
 			fieldVal.Field(j).Set(reflect.ValueOf(objVal))
+		} else {
+			fieldVal.Field(j).Set(parse.ConvertValue(objVal, itemType))
 		}
 	}
 	// 转换完成之后 执行初始化MapperInit方法
