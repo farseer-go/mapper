@@ -351,11 +351,14 @@ func setStructVal(anonymous bool, fieldType reflect.StructField, fieldVal reflec
 	for j := 0; j < fieldVal.NumField(); j++ {
 		itemType := fieldVal.Field(j).Type()
 		name := fieldType.Name + fieldType.Type.Field(j).Name
-		if anonymous {
-			name = "anonymous_" + fieldType.Type.Field(j).Name
-		}
 		objVal := objMap[name]
-
+		if anonymous && objVal == nil {
+			name = "anonymous_" + fieldType.Type.Field(j).Name
+			objVal = objMap[name]
+		}
+		if objVal == nil {
+			objVal = objMap[fieldType.Type.Field(j).Name]
+		}
 		if objVal == nil {
 			continue
 		}
