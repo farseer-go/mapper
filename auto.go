@@ -103,6 +103,17 @@ func assignment(tsVal reflect.Value, objMap map[string]any) {
 		item := fieldVal.Type()
 		objVal := objMap[fieldType.Name]
 
+		// 忽略未导出的字段
+		if !fieldType.IsExported() {
+			continue
+		}
+		// 忽略字段
+		tags := strings.Split(fieldType.Tag.Get("mapper"), ";")
+		for _, tag := range tags {
+			if tag == "ignore" {
+				continue
+			}
+		}
 		//结构体赋值
 		if _, isList := types.IsList(fieldVal); isList {
 			if reflect.ValueOf(objVal).Kind() == reflect.Invalid {
