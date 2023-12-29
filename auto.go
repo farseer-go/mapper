@@ -25,10 +25,8 @@ func Auto(from, to any) error {
 	// 反射来源对象
 	fsVal := reflect.Indirect(reflect.ValueOf(from))
 
-	// 定义存储map ,保存解析出来的字段和值
-	objMap := make(map[string]any)
 	// 遍历来源对象
-	analysis(fsVal, objMap)
+	objMap := analysis(fsVal)
 	//转换对象赋值操作
 	//反射转换对象 to 指针使用Elem 获取具体值
 	tsVal := reflect.ValueOf(to).Elem()
@@ -37,34 +35,62 @@ func Auto(from, to any) error {
 	return nil
 }
 
-// 解析结构体
-func analysis(fsVal reflect.Value, objMap map[string]any) {
-	for i := 0; i < fsVal.NumField(); i++ {
-		itemType := fsVal.Field(i).Type()
-		field := fsVal.Type().Field(i)
+func analysis(fsVal reflect.Value) map[string]any {
+	// 定义存储map ,保存解析出来的字段和值
+	objMap := make(map[string]any)
 
-		// 结构体遍历
-		if itemType.Kind() == reflect.Interface || !field.IsExported() {
-			continue
+	switch fsVal.Kind() {
+	case reflect.Map:
+		analysisMap(fsVal, objMap)
+	default:
+		// 结构体
+		for i := 0; i < fsVal.NumField(); i++ {
+			fieldValue := fsVal.Field(i)
+			field := fsVal.Type().Field(i)
+			analysisField(fieldValue, field, objMap)
 		}
-		if _, isList := types.IsList(fsVal.Field(i)); isList {
-			array := types.ListToArray(fsVal.Field(i))
-			//toArrayType := types.GetListItemArrayType(itemType)
-			//newArr := reflect.MakeSlice(toArrayType, 0, 0)
-			//for i := 0; i < len(array); i++ {
-			//	item := array[i]
-			//	newArr = reflect.AppendSlice(newArr, reflect.ValueOf(item))
-			//}
-			objMap[field.Name] = array
-		} else if len(itemType.String()) > 8 && itemType.String()[len(itemType.String())-8:] == "ListType" {
-			objMap[field.Name] = fsVal.Field(i).Interface()
-		} else if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" && itemType.String() != "decimal.Decimal" {
-			structAnalysis(field.Anonymous, field.Name, field.Name, fsVal.Field(i), field.Type, objMap)
-		} else {
-			// 非结构体遍历
-			itemValue := fsVal.Field(i).Interface()
-			objMap[field.Name] = itemValue
+	}
+	return objMap
+}
+
+func analysisMap(fsVal reflect.Value, objMap map[string]any) {
+	for _, key := range fsVal.MapKeys() {
+		mapValue := fsVal.MapIndex(key)
+		field := reflect.StructField{
+			Name:    key.String(),
+			PkgPath: mapValue.Type().PkgPath(),
 		}
+		analysisField(mapValue, field, objMap)
+	}
+}
+
+// 解析结构体
+func analysisField(fieldValue reflect.Value, field reflect.StructField, objMap map[string]any) {
+	itemType := fieldValue.Type()
+	if itemType.Kind() == reflect.Interface && fieldValue.CanInterface() {
+		itemType = fieldValue.Elem().Type()
+	}
+	// 结构体遍历
+	if itemType.Kind() == reflect.Interface || !field.IsExported() {
+		return
+	}
+	if _, isList := types.IsList(fieldValue); isList {
+		array := types.ListToArray(fieldValue)
+		//toArrayType := types.GetListItemArrayType(itemType)
+		//newArr := reflect.MakeSlice(toArrayType, 0, 0)
+		//for i := 0; i < len(array); i++ {
+		//	item := array[i]
+		//	newArr = reflect.AppendSlice(newArr, reflect.ValueOf(item))
+		//}
+		objMap[field.Name] = array
+	} else if len(itemType.String()) > 8 && itemType.String()[len(itemType.String())-8:] == "ListType" {
+		objMap[field.Name] = fieldValue.Interface()
+	} else if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" && itemType.String() != "decimal.Decimal" {
+		structAnalysis(field.Anonymous, field.Name, field.Name, fieldValue, field.Type, objMap)
+	} else {
+		// 非结构体遍历
+		itemValue := fieldValue.Interface()
+		objMap[field.Name] = itemValue
 	}
 }
 
@@ -329,6 +355,7 @@ func setStructVal(anonymous bool, fieldType reflect.StructField, fieldVal reflec
 			name = "anonymous_" + fieldType.Type.Field(j).Name
 		}
 		objVal := objMap[name]
+
 		if objVal == nil {
 			continue
 		}
