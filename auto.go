@@ -67,7 +67,7 @@ func analysisMap(fsVal reflect.Value, objMap map[string]any) {
 // 解析结构体
 func analysisField(fieldValue reflect.Value, field reflect.StructField, objMap map[string]any) {
 	itemType := fieldValue.Type()
-	if itemType.Kind() == reflect.Interface && fieldValue.CanInterface() {
+	if itemType.Kind() == reflect.Interface && fieldValue.CanInterface() && !fieldValue.IsNil() {
 		itemType = fieldValue.Elem().Type()
 	}
 	// 结构体遍历
