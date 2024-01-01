@@ -109,6 +109,10 @@ func analysisStruct(anonymous bool, parentName string, fieldName string, fromStr
 		if anonymous {
 			itemName = "anonymous_" + sourceFieldName
 		}
+		// 跳过字段值为nil的字段
+		if types.IsNil(fieldVal) {
+			continue
+		}
 		if types.IsDateTime(itemType) {
 			sourceMap[itemName] = fieldVal.Interface()
 		} else if types.IsGoBasicType(itemType) {
