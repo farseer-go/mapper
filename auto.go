@@ -119,7 +119,7 @@ func analysisStruct(anonymous bool, parentName string, fieldName string, fromStr
 		} else if itemType.Kind() == reflect.Map {
 			mapAnalysis(parentName, fieldName, fieldVal, sourceMap)
 			// struct
-		} else if itemType.Kind() == reflect.Struct && itemType.String() != "dateTime.DateTime" && itemType.String() != "decimal.Decimal" {
+		} else if types.IsStruct(itemType) {
 			analysisStruct(anonymous, parentName, sourceFieldName, fieldVal, fromStructType.Field(i).Type, sourceMap)
 		} else if itemType.Kind() == reflect.Slice {
 			if fieldVal.CanInterface() {
@@ -130,12 +130,6 @@ func analysisStruct(anonymous bool, parentName string, fieldName string, fromStr
 				sourceMap[itemName] = fieldVal.Interface()
 			}
 		}
-
-		//else if itemType.Kind() == reflect.Pointer {
-		//	itemName := fieldName
-		//	itemValue := fieldVal
-		//	objMap[itemName] = itemValue
-		//}
 	}
 }
 
@@ -197,12 +191,33 @@ func assignment(targetVal reflect.Value, sourceMap map[string]any) {
 			if types.IsGoBasicType(targetNumFieldValueType) {
 				setVal(sourceValue, targetNumFieldValue, targetNumFieldStructField)
 			} else {
-				// 结构内字段转换 赋值
+				// 目标是否为指针
 				if types.IsNil(targetNumFieldValue) {
-					targetNumFieldValue.Set(reflect.New(targetNumFieldValueType))
-					targetNumFieldValue = targetNumFieldValue.Elem()
+					// 判断源值是否为nil
+					targetFieldName := targetNumFieldStructField.Name
+					if targetNumFieldStructField.Anonymous {
+						targetFieldName = "anonymous_" + targetFieldName
+					}
+					sourceHaveVal := false
+					for k, _ := range sourceMap {
+						if strings.HasPrefix(k, targetFieldName) {
+							sourceHaveVal = true
+							break
+						}
+					}
+					if sourceHaveVal {
+						// 结构内字段转换 赋值
+						targetNumFieldValue.Set(reflect.New(targetNumFieldValueType))
+						targetNumFieldValue = targetNumFieldValue.Elem()
+
+						// 指针类型，只有在源值存在的情况下，才赋值。否则跳过
+						setStructVal(targetNumFieldStructField.Anonymous, targetNumFieldStructField, targetNumFieldValue, sourceMap)
+					}
+					// 非指针，正常走逻辑
+				} else {
+					setStructVal(targetNumFieldStructField.Anonymous, targetNumFieldStructField, targetNumFieldValue, sourceMap)
 				}
-				setStructVal(targetNumFieldStructField.Anonymous, targetNumFieldStructField, targetNumFieldValue, sourceMap)
+
 			}
 
 		} else {
