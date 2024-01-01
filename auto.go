@@ -23,137 +23,137 @@ func Auto(from, to any) error {
 	defer execInitFunc(reflect.ValueOf(to))
 
 	// 反射来源对象
-	fsVal := reflect.Indirect(reflect.ValueOf(from))
+	sourceVal := reflect.Indirect(reflect.ValueOf(from))
 
 	// 遍历来源对象
-	objMap := analysis(fsVal)
+	sourceMap := analysis(sourceVal)
 	//转换对象赋值操作
 	//反射转换对象 to 指针使用Elem 获取具体值
-	tsVal := reflect.ValueOf(to).Elem()
+	targetVal := reflect.ValueOf(to).Elem()
 	//赋值操作
-	assignment(tsVal, objMap)
+	assignment(targetVal, sourceMap)
 	return nil
 }
 
-func analysis(fsVal reflect.Value) map[string]any {
+func analysis(sourceVal reflect.Value) map[string]any {
 	// 定义存储map ,保存解析出来的字段和值
-	objMap := make(map[string]any)
+	sourceMap := make(map[string]any)
 
-	switch fsVal.Kind() {
+	switch sourceVal.Kind() {
 	case reflect.Map:
-		analysisMap(fsVal, objMap)
+		analysisMap(sourceVal, sourceMap)
 	default:
 		// 结构体
-		for i := 0; i < fsVal.NumField(); i++ {
-			fieldValue := fsVal.Field(i)
-			field := fsVal.Type().Field(i)
-			analysisField(fieldValue, field, objMap)
+		for i := 0; i < sourceVal.NumField(); i++ {
+			sourceNumFieldValue := sourceVal.Field(i)
+			sourceNumFieldType := sourceVal.Type().Field(i)
+			analysisField(sourceNumFieldValue, sourceNumFieldType, sourceMap)
 		}
 	}
-	return objMap
+	return sourceMap
 }
 
-func analysisMap(fsVal reflect.Value, objMap map[string]any) {
-	for _, key := range fsVal.MapKeys() {
-		mapValue := fsVal.MapIndex(key)
+func analysisMap(sourceVal reflect.Value, sourceMap map[string]any) {
+	for _, key := range sourceVal.MapKeys() {
+		sourceMapValue := sourceVal.MapIndex(key)
 		field := reflect.StructField{
 			Name:    key.String(),
-			PkgPath: mapValue.Type().PkgPath(),
+			PkgPath: sourceMapValue.Type().PkgPath(),
 		}
-		analysisField(mapValue, field, objMap)
+		analysisField(sourceMapValue, field, sourceMap)
 	}
 }
 
 // 解析结构体
-func analysisField(fieldValue reflect.Value, field reflect.StructField, objMap map[string]any) {
-	itemType := fieldValue.Type()
-	if itemType.Kind() == reflect.Interface && fieldValue.CanInterface() && !fieldValue.IsNil() {
-		itemType = fieldValue.Elem().Type()
+func analysisField(sourceFieldValue reflect.Value, sourceFieldType reflect.StructField, sourceMap map[string]any) {
+	sourceFieldValueType := sourceFieldValue.Type()
+	if sourceFieldValueType.Kind() == reflect.Interface && sourceFieldValue.CanInterface() && !sourceFieldValue.IsNil() {
+		sourceFieldValueType = sourceFieldValue.Elem().Type()
 	}
 	// 结构体遍历
-	if itemType.Kind() == reflect.Interface || !field.IsExported() {
+	if sourceFieldValueType.Kind() == reflect.Interface || !sourceFieldType.IsExported() {
 		return
 	}
-	if _, isList := types.IsList(fieldValue); isList {
-		array := types.ListToArray(fieldValue)
+	if _, isList := types.IsList(sourceFieldValue); isList {
+		array := types.ListToArray(sourceFieldValue)
 		//toArrayType := types.GetListItemArrayType(itemType)
 		//newArr := reflect.MakeSlice(toArrayType, 0, 0)
 		//for i := 0; i < len(array); i++ {
 		//	item := array[i]
 		//	newArr = reflect.AppendSlice(newArr, reflect.ValueOf(item))
 		//}
-		objMap[field.Name] = array
-	} else if len(itemType.String()) > 8 && itemType.String()[len(itemType.String())-8:] == "ListType" {
-		objMap[field.Name] = fieldValue.Interface()
-	} else if itemType.Kind() == reflect.Struct && !types.IsGoBasicType(itemType) && itemType.String() != "dateTime.DateTime" && itemType.String() != "decimal.Decimal" {
-		structAnalysis(field.Anonymous, field.Name, field.Name, fieldValue, field.Type, objMap)
+		sourceMap[sourceFieldType.Name] = array
+	} else if len(sourceFieldValueType.String()) > 8 && sourceFieldValueType.String()[len(sourceFieldValueType.String())-8:] == "ListType" {
+		sourceMap[sourceFieldType.Name] = sourceFieldValue.Interface()
+	} else if sourceFieldValueType.Kind() == reflect.Struct && !types.IsGoBasicType(sourceFieldValueType) && sourceFieldValueType.String() != "dateTime.DateTime" && sourceFieldValueType.String() != "decimal.Decimal" {
+		structAnalysis(sourceFieldType.Anonymous, sourceFieldType.Name, sourceFieldType.Name, sourceFieldValue, sourceFieldType.Type, sourceMap)
 	} else {
 		// 非结构体遍历
-		itemValue := fieldValue.Interface()
-		objMap[field.Name] = itemValue
+		itemValue := sourceFieldValue.Interface()
+		sourceMap[sourceFieldType.Name] = itemValue
 	}
 }
 
 // 赋值操作
-func assignment(tsVal reflect.Value, objMap map[string]any) {
-	for i := 0; i < tsVal.NumField(); i++ {
+func assignment(targetVal reflect.Value, sourceMap map[string]any) {
+	for i := 0; i < targetVal.NumField(); i++ {
 		//获取单个字段类型
-		fieldType := tsVal.Type().Field(i)
-		fieldVal := tsVal.Field(i)
-		item := fieldVal.Type()
-		objVal := objMap[fieldType.Name]
+		targetNumFieldType := targetVal.Type().Field(i)
+		targetNumFieldValue := targetVal.Field(i)
+		targetNumFieldValueType := targetNumFieldValue.Type()
+		sourceValue := sourceMap[targetNumFieldType.Name]
 
 		// 忽略未导出的字段
-		if !fieldType.IsExported() {
+		if !targetNumFieldType.IsExported() {
 			continue
 		}
 		// 忽略字段
-		tags := strings.Split(fieldType.Tag.Get("mapper"), ";")
+		tags := strings.Split(targetNumFieldType.Tag.Get("mapper"), ";")
 		for _, tag := range tags {
 			if tag == "ignore" {
 				continue
 			}
 		}
 		//结构体赋值
-		if _, isList := types.IsList(fieldVal); isList {
-			if reflect.ValueOf(objVal).Kind() == reflect.Invalid {
+		if _, isList := types.IsList(targetNumFieldValue); isList {
+			if reflect.ValueOf(sourceValue).Kind() == reflect.Invalid {
 				continue
 			}
-			sourceType := types.GetListItemArrayType(item)
+			sourceType := types.GetListItemArrayType(targetNumFieldValueType)
 			newArr := reflect.New(sourceType)
-			toList := types.ListNew(item)
-			setSliceVal(reflect.ValueOf(objVal), newArr)
+			toList := types.ListNew(targetNumFieldValueType)
+			setSliceVal(reflect.ValueOf(sourceValue), newArr)
 			sliArray := reflect.Indirect(newArr)
 			for i := 0; i < sliArray.Len(); i++ {
 				//获取数组内的元素
 				structObj := sliArray.Index(i)
 				types.ListAdd(toList, structObj.Interface())
 			}
-			fieldVal.Set(toList.Elem())
-		} else if len(item.String()) > 8 && item.String()[len(item.String())-8:] == "ListType" {
-			if reflect.ValueOf(objVal).Kind() == reflect.Invalid {
+			targetNumFieldValue.Set(toList.Elem())
+		} else if len(targetNumFieldValueType.String()) > 8 && targetNumFieldValueType.String()[len(targetNumFieldValueType.String())-8:] == "ListType" {
+			if reflect.ValueOf(sourceValue).Kind() == reflect.Invalid {
 				continue
 			}
-			fieldVal.Set(reflect.ValueOf(objVal))
-		} else if item.Kind() == reflect.Struct && item.String() != "dateTime.DateTime" && item.String() != "decimal.Decimal" {
+			targetNumFieldValue.Set(reflect.ValueOf(sourceValue))
+		} else if targetNumFieldValueType.Kind() == reflect.Struct && targetNumFieldValueType.String() != "dateTime.DateTime" && targetNumFieldValueType.String() != "decimal.Decimal" {
 			//list ,pagelist ,dic 转换 ，直接赋值
-			if types.IsCollections(fieldVal.Type()) {
-				setVal(objVal, fieldVal, fieldType)
-			} else if types.IsGoBasicType(item) {
-				setVal(objVal, fieldVal, fieldType)
+			if types.IsCollections(targetNumFieldValue.Type()) {
+				setVal(sourceValue, targetNumFieldValue, targetNumFieldType)
+			} else if types.IsGoBasicType(targetNumFieldValueType) {
+				setVal(sourceValue, targetNumFieldValue, targetNumFieldType)
 			} else {
 				//结构内字段转换 赋值
-				setStructVal(fieldType.Anonymous, fieldType, fieldVal, objMap)
+				setStructVal(targetNumFieldType.Anonymous, targetNumFieldType, targetNumFieldValue, sourceMap)
 			}
 
-		} else if item.Kind() == reflect.Slice {
-			if reflect.ValueOf(objVal).Kind() == reflect.Invalid {
+		} else if targetNumFieldValueType.Kind() == reflect.Slice {
+			if reflect.ValueOf(sourceValue).Kind() == reflect.Invalid {
 				continue
 			}
-			setSliceVal(reflect.ValueOf(objVal), fieldVal)
+			setSliceVal(reflect.ValueOf(sourceValue), targetNumFieldValue)
 		} else {
 			//正常字段转换
-			setVal(objVal, fieldVal, fieldType)
+			setVal(sourceValue, targetNumFieldValue, targetNumFieldType)
 		}
 	}
 }
@@ -311,27 +311,27 @@ func setStruct(fieldVal reflect.Value, fields reflect.Value) {
 }
 
 // 设置值
-func setVal(objVal any, fieldVal reflect.Value, fieldType reflect.StructField) {
-
-	if objVal != nil {
-		objType := reflect.TypeOf(objVal)
-		if fieldType.Type.String() == objType.String() {
-			fieldVal.Set(reflect.ValueOf(objVal))
-		} else if fieldType.Type.String() == "string" && objType.String() == "time.Time" {
-			stringValue := reflect.ValueOf(objVal).Interface().(time.Time).Format("2006-01-02 15:04:05")
-			fieldVal.Set(reflect.ValueOf(stringValue))
-		} else if fieldType.Type.String() == "time.Time" && objType.String() == "string" {
+func setVal(sourceValue any, targetFieldValue reflect.Value, targetFieldType reflect.StructField) {
+	if sourceValue != nil {
+		objType := reflect.TypeOf(sourceValue)
+		if targetFieldType.Type.String() == objType.String() {
+			targetFieldValue.Set(reflect.ValueOf(sourceValue))
+		} else if targetFieldType.Type.String() == "string" && objType.String() == "time.Time" {
+			stringValue := reflect.ValueOf(sourceValue).Interface().(time.Time).Format("2006-01-02 15:04:05")
+			targetFieldValue.Set(reflect.ValueOf(stringValue))
+		} else if targetFieldType.Type.String() == "time.Time" && objType.String() == "string" {
 			// 将字符串转换为时间类型并赋值给time.Time类型字段
-			timeValue, err := time.Parse("2006-01-02 15:04:05", reflect.ValueOf(objVal).Interface().(string))
+			timeValue, err := time.Parse("2006-01-02 15:04:05", reflect.ValueOf(sourceValue).Interface().(string))
 			if err == nil {
-				fieldVal.Set(reflect.ValueOf(timeValue))
+				targetFieldValue.Set(reflect.ValueOf(timeValue))
 			}
 		} else {
-			convert := parse.ConvertValue(objVal, fieldType.Type)
-			fieldVal.Set(convert)
+			convert := parse.ConvertValue(sourceValue, targetFieldType.Type)
+			targetFieldValue.Set(convert)
 		}
 	}
 }
+
 func setListVal(objVal any, fieldVal reflect.Value) {
 	if objVal != nil {
 		objType := reflect.TypeOf(objVal)
@@ -358,40 +358,40 @@ func setListVal(objVal any, fieldVal reflect.Value) {
 }
 
 // 结构赋值
-func setStructVal(anonymous bool, fieldType reflect.StructField, fieldVal reflect.Value, objMap map[string]any) {
-	for j := 0; j < fieldVal.NumField(); j++ {
-		itemType := fieldVal.Field(j).Type()
-		name := fieldType.Name + fieldType.Type.Field(j).Name
-		objVal := objMap[name]
-		if anonymous && objVal == nil {
-			name = "anonymous_" + fieldType.Type.Field(j).Name
-			objVal = objMap[name]
+func setStructVal(targetAnonymous bool, targetFieldType reflect.StructField, targetFieldValue reflect.Value, sourceMap map[string]any) {
+	for j := 0; j < targetFieldValue.NumField(); j++ {
+		itemType := targetFieldValue.Field(j).Type()
+		name := targetFieldType.Name + targetFieldType.Type.Field(j).Name
+		objVal := sourceMap[name]
+		if targetAnonymous && objVal == nil {
+			name = "anonymous_" + targetFieldType.Type.Field(j).Name
+			objVal = sourceMap[name]
 		}
 		if objVal == nil {
-			objVal = objMap[fieldType.Type.Field(j).Name]
+			objVal = sourceMap[targetFieldType.Type.Field(j).Name]
 		}
 		if objVal == nil {
 			continue
 		}
 		objType := reflect.TypeOf(objVal)
 		if types.IsTime(itemType) && types.IsDateTime(objType) {
-			fieldVal.Field(j).Set(parse.ConvertValue(objVal, itemType))
+			targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
 		} else if types.IsDateTime(itemType) && types.IsTime(objType) {
-			fieldVal.Field(j).Set(parse.ConvertValue(objVal, itemType))
+			targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
 		} else if itemType.Kind() == objType.Kind() {
-			fieldVal.Field(j).Set(reflect.ValueOf(objVal))
+			targetFieldValue.Field(j).Set(reflect.ValueOf(objVal))
 		} else {
-			fieldVal.Field(j).Set(parse.ConvertValue(objVal, itemType))
+			targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
 		}
 	}
 	// 转换完成之后 执行初始化MapperInit方法
 
-	defer execInitFunc(fieldVal.Addr())
+	defer execInitFunc(targetFieldValue.Addr())
 	//defer execInitFunc(reflect.ValueOf(tsVal.Field(i).Interface()))
 }
 
 // 结构体递归解析
-func structAnalysis(anonymous bool, parentName string, fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, objMap map[string]any) {
+func structAnalysis(anonymous bool, parentName string, fieldName string, fromStructVal reflect.Value, fromStructType reflect.Type, sourceMap map[string]any) {
 	// 转换完成之后 执行初始化MapperInit方法
 	for i := 0; i < fromStructVal.NumField(); i++ {
 		fieldVal := fromStructVal.Field(i)
@@ -401,24 +401,24 @@ func structAnalysis(anonymous bool, parentName string, fieldName string, fromStr
 			itemName = "anonymous_" + fromStructType.Field(i).Name
 		}
 		if types.IsDateTime(itemType) {
-			objMap[itemName] = fieldVal.Interface()
+			sourceMap[itemName] = fieldVal.Interface()
 		} else if types.IsGoBasicType(itemType) {
 			if fieldVal.CanInterface() {
-				objMap[itemName] = fieldVal.Interface()
+				sourceMap[itemName] = fieldVal.Interface()
 			}
 			// map
 		} else if itemType.Kind() == reflect.Map {
-			mapAnalysis(parentName, fieldName, fieldVal, objMap)
+			mapAnalysis(parentName, fieldName, fieldVal, sourceMap)
 			// struct
 		} else if itemType.Kind() == reflect.Struct && itemType.String() != "dateTime.DateTime" && itemType.String() != "decimal.Decimal" {
-			structAnalysis(anonymous, parentName, fromStructType.Field(i).Name, fieldVal, fromStructType.Field(i).Type, objMap)
+			structAnalysis(anonymous, parentName, fromStructType.Field(i).Name, fieldVal, fromStructType.Field(i).Type, sourceMap)
 		} else if itemType.Kind() == reflect.Slice {
 			if fieldVal.CanInterface() {
-				objMap[itemName] = fieldVal.Interface()
+				sourceMap[itemName] = fieldVal.Interface()
 			}
 		} else {
 			if fieldVal.CanInterface() || itemType.String() == "decimal.Decimal" {
-				objMap[itemName] = fieldVal.Interface()
+				sourceMap[itemName] = fieldVal.Interface()
 			}
 		}
 
@@ -431,7 +431,7 @@ func structAnalysis(anonymous bool, parentName string, fieldName string, fromStr
 }
 
 // map 解析
-func mapAnalysis(parentName string, fieldName string, fieldVal reflect.Value, objMap map[string]any) {
+func mapAnalysis(parentName string, fieldName string, fieldVal reflect.Value, sourceMap map[string]any) {
 	newMaps := make(map[string]string)
 	maps := fieldVal.MapRange()
 	for maps.Next() {
@@ -440,7 +440,7 @@ func mapAnalysis(parentName string, fieldName string, fieldVal reflect.Value, ob
 		newMaps[array[0]] = array[1]
 	}
 	dic := collections.NewDictionaryFromMap(newMaps)
-	objMap[parentName] = dic
+	sourceMap[parentName] = dic
 }
 
 // StructToMap 结构转map
@@ -462,23 +462,23 @@ func StructToMap(fromObjPtr any, dic any) error {
 }
 
 // execInitFunc map转换完成之后执行 初始化方法
-func execInitFunc(cVal reflect.Value) {
+func execInitFunc(targetFieldValue reflect.Value) {
 	// 是否实现了IMapperInit
 	var actionMapperInit = reflect.TypeOf((*core.IMapperInit)(nil)).Elem()
 	if actionMapperInit != nil {
-		isImplActionMapperInit := cVal.Type().Implements(actionMapperInit)
+		isImplActionMapperInit := targetFieldValue.Type().Implements(actionMapperInit)
 		if isImplActionMapperInit {
 			//执行方法
-			cVal.MethodByName("MapperInit").Call([]reflect.Value{})
+			targetFieldValue.MethodByName("MapperInit").Call([]reflect.Value{})
 			return
 		}
 	}
 	actionMapperInit = reflect.TypeOf((core.IMapperInit)(nil))
 	if actionMapperInit != nil {
-		isImplActionMapperInit := cVal.Type().Implements(actionMapperInit)
+		isImplActionMapperInit := targetFieldValue.Type().Implements(actionMapperInit)
 		if isImplActionMapperInit {
 			//执行方法
-			cVal.MethodByName("MapperInit").Call([]reflect.Value{})
+			targetFieldValue.MethodByName("MapperInit").Call([]reflect.Value{})
 		}
 	}
 }
