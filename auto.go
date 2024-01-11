@@ -88,14 +88,14 @@ func analysisField(sourceFieldValue reflect.Value, sourceFieldType reflect.Struc
 			sourceFieldValue = sourceFieldValue.Elem()
 		}
 		analysisStruct(sourceFieldType.Anonymous, sourceFieldType.Name, sourceFieldType.Name, sourceFieldValue, sourceFieldType.Type, sourceMap)
+	} else if sourceFieldValueType.Kind() == reflect.Map {
+		analysisMap(sourceFieldValue.Elem(), sourceMap)
 	} else {
 		// 非结构体遍历
 		itemValue := sourceFieldValue.Interface()
 		sourceMap[sourceFieldType.Name] = itemValue
 	}
-	//else if sourceFieldValueType.Kind() == reflect.Map {
-	//	analysisMap(sourceFieldValue, sourceMap)
-	//}
+
 }
 
 // 结构体递归解析

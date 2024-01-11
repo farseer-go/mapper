@@ -11,7 +11,7 @@ type BaseEntity struct {
 	AppName string // 应用名称
 }
 type SubMapEntity struct {
-	Age     int64  // 应用ID
+	Age     int    // 应用ID
 	Caption string // 应用名称
 }
 type MapEntity struct {
@@ -23,14 +23,14 @@ type MapEntity struct {
 
 func TestMapToEntity(t *testing.T) {
 	m := make(map[string]any)
-	m["AppId"] = int64(1)
-	m["AppName"] = "test"
-	m["UserId"] = 888
-	m["UserName"] = "steden"
 	m["Sub"] = map[string]any{
 		"Age":     18,
 		"Caption": "有值吗",
 	}
+	m["AppId"] = int64(1)
+	m["AppName"] = "test"
+	m["UserId"] = 888
+	m["UserName"] = "steden"
 
 	entity := mapper.Single[MapEntity](m)
 	assert.Equal(t, m["AppId"], entity.AppId)
