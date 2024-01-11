@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/farseer-go/fs/dateTime"
 	"github.com/farseer-go/mapper"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -10,6 +11,7 @@ type BaseEntity struct {
 	Exception SubMapEntity
 	AppId     int64  // 应用ID
 	AppName   string // 应用名称
+	CreateAt  dateTime.DateTime
 }
 type SubMapEntity struct {
 	Age     int    // 应用ID
@@ -37,6 +39,7 @@ func TestMapToEntity(t *testing.T) {
 	m["AppName"] = "test"
 	m["UserId"] = 888
 	m["UserName"] = "steden"
+	m["CreateAt"] = dateTime.Now()
 
 	entity := mapper.Single[MapEntity](m)
 	assert.Equal(t, m["AppId"], entity.AppId)
@@ -47,4 +50,5 @@ func TestMapToEntity(t *testing.T) {
 	assert.Equal(t, m["Sub"].(map[string]any)["Caption"], entity.Sub.Caption)
 	assert.Equal(t, m["Exception"].(map[string]any)["Age"], entity.Exception.Age)
 	assert.Equal(t, m["Exception"].(map[string]any)["Caption"], entity.Exception.Caption)
+	assert.Equal(t, (m["CreateAt"].(dateTime.DateTime)).ToString("yyyyMMdd"), entity.CreateAt.ToString("yyyyMMdd"))
 }
