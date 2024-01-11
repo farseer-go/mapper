@@ -41,31 +41,31 @@ func analysis(sourceVal reflect.Value) map[string]any {
 
 	switch sourceVal.Kind() {
 	case reflect.Map:
-		analysisMap(sourceVal, sourceMap)
+		analysisMap("", sourceVal, sourceMap)
 	default:
 		// 结构体
 		for i := 0; i < sourceVal.NumField(); i++ {
 			sourceNumFieldValue := sourceVal.Field(i)
 			sourceNumFieldType := sourceVal.Type().Field(i)
-			analysisField(sourceNumFieldValue, sourceNumFieldType, sourceMap)
+			analysisField("", sourceNumFieldValue, sourceNumFieldType, sourceMap)
 		}
 	}
 	return sourceMap
 }
 
-func analysisMap(sourceVal reflect.Value, sourceMap map[string]any) {
+func analysisMap(parentName string, sourceVal reflect.Value, sourceMap map[string]any) {
 	for _, key := range sourceVal.MapKeys() {
 		sourceMapValue := sourceVal.MapIndex(key)
 		field := reflect.StructField{
 			Name:    key.String(),
 			PkgPath: sourceMapValue.Type().PkgPath(),
 		}
-		analysisField(sourceMapValue, field, sourceMap)
+		analysisField(parentName+key.String(), sourceMapValue, field, sourceMap)
 	}
 }
 
 // 解析结构体
-func analysisField(sourceFieldValue reflect.Value, sourceFieldType reflect.StructField, sourceMap map[string]any) {
+func analysisField(parentName string, sourceFieldValue reflect.Value, sourceFieldType reflect.StructField, sourceMap map[string]any) {
 	sourceFieldValueType := sourceFieldValue.Type()
 	if sourceFieldValueType.Kind() == reflect.Interface && sourceFieldValue.CanInterface() && !types.IsNil(sourceFieldValue) {
 		sourceFieldValueType = sourceFieldValue.Elem().Type()
@@ -89,13 +89,16 @@ func analysisField(sourceFieldValue reflect.Value, sourceFieldType reflect.Struc
 		}
 		analysisStruct(sourceFieldType.Anonymous, sourceFieldType.Name, sourceFieldType.Name, sourceFieldValue, sourceFieldType.Type, sourceMap)
 	} else if sourceFieldValueType.Kind() == reflect.Map {
-		analysisMap(sourceFieldValue.Elem(), sourceMap)
+		analysisMap(parentName, sourceFieldValue.Elem(), sourceMap)
 	} else {
 		// 非结构体遍历
 		itemValue := sourceFieldValue.Interface()
-		sourceMap[sourceFieldType.Name] = itemValue
+		if strings.Contains(parentName, sourceFieldType.Name) {
+			sourceMap[parentName] = itemValue
+		} else {
+			sourceMap[sourceFieldType.Name] = itemValue
+		}
 	}
-
 }
 
 // 结构体递归解析
@@ -438,31 +441,56 @@ func setListVal(objVal any, fieldVal reflect.Value) {
 // 结构赋值
 func setStructVal(targetAnonymous bool, targetFieldType reflect.StructField, targetFieldValue reflect.Value, sourceMap map[string]any) {
 	for j := 0; j < targetFieldValue.NumField(); j++ {
-		itemType := targetFieldValue.Field(j).Type()
+		item := targetFieldValue.Field(j)
+		itemType := item.Type()
 		// 目标字段的名称
 		targetNumFieldName := targetFieldValue.Type().Field(j).Name
 		name := targetFieldType.Name + targetNumFieldName
-		objVal := sourceMap[name]
-		if targetAnonymous && objVal == nil {
-			name = "anonymous_" + targetNumFieldName
-			objVal = sourceMap[name]
-		}
-		if objVal == nil {
-			objVal = sourceMap[targetNumFieldName]
-		}
-		if objVal == nil {
-			continue
-		}
-		objType := reflect.TypeOf(objVal)
-		if types.IsTime(itemType) && types.IsDateTime(objType) {
-			targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
-		} else if types.IsDateTime(itemType) && types.IsTime(objType) {
-			targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
-		} else if itemType.Kind() == objType.Kind() {
-			targetFieldValue.Field(j).Set(reflect.ValueOf(objVal))
+
+		if itemType.Kind() == reflect.Struct {
+			for i := 0; i < item.NumField(); i++ {
+				itemSubType := item.Field(i).Type()
+				itemSubNumFieldName := item.Type().Field(i).Name
+				name = targetNumFieldName + itemSubNumFieldName
+				objVal := sourceMap[name]
+				if objVal == nil {
+					continue
+				}
+				objType := reflect.TypeOf(objVal)
+				if types.IsTime(itemSubType) && types.IsDateTime(objType) {
+					targetFieldValue.Field(j).Field(i).Set(parse.ConvertValue(objVal, itemSubType))
+				} else if types.IsDateTime(itemSubType) && types.IsTime(objType) {
+					targetFieldValue.Field(j).Field(i).Set(parse.ConvertValue(objVal, itemSubType))
+				} else if itemSubType.Kind() == objType.Kind() {
+					targetFieldValue.Field(j).Field(i).Set(reflect.ValueOf(objVal))
+				} else {
+					targetFieldValue.Field(j).Field(i).Set(parse.ConvertValue(objVal, itemSubType))
+				}
+			}
 		} else {
-			targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
+			objVal := sourceMap[name]
+			if targetAnonymous && objVal == nil {
+				name = "anonymous_" + targetNumFieldName
+				objVal = sourceMap[name]
+			}
+			if objVal == nil {
+				objVal = sourceMap[targetNumFieldName]
+			}
+			if objVal == nil {
+				continue
+			}
+			objType := reflect.TypeOf(objVal)
+			if types.IsTime(itemType) && types.IsDateTime(objType) {
+				targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
+			} else if types.IsDateTime(itemType) && types.IsTime(objType) {
+				targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
+			} else if itemType.Kind() == objType.Kind() {
+				targetFieldValue.Field(j).Set(reflect.ValueOf(objVal))
+			} else {
+				targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
+			}
 		}
+
 	}
 	// 转换完成之后 执行初始化MapperInit方法
 
