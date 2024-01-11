@@ -27,6 +27,7 @@ type MapEntity struct {
 
 func TestMapToEntity(t *testing.T) {
 	m := make(map[string]any)
+	m["CreateAt"] = dateTime.Now()
 	m["Sub"] = map[string]any{
 		"Age":     18,
 		"Caption": "有值吗",
@@ -39,7 +40,6 @@ func TestMapToEntity(t *testing.T) {
 	m["AppName"] = "test"
 	m["UserId"] = 888
 	m["UserName"] = "steden"
-	m["CreateAt"] = dateTime.Now()
 
 	entity := mapper.Single[MapEntity](m)
 	assert.Equal(t, m["AppId"], entity.AppId)
