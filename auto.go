@@ -462,7 +462,7 @@ func setStructVal(targetAnonymous bool, targetFieldType reflect.StructField, tar
 				itemSubNumFieldName := targetNumFieldValue.Type().Field(i).Name
 				name = targetNumFieldName + itemSubNumFieldName
 
-				setFieldValue(targetAnonymous, targetFieldValue.Field(j).Field(i), itemSubType, targetNumField, name, sourceMap)
+				setFieldValue(targetAnonymous, targetNumFieldValue.Field(i), itemSubType, targetNumField, name, sourceMap)
 
 				//objVal := sourceMap[name]
 				//
