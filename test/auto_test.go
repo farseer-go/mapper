@@ -258,6 +258,21 @@ func TestDtoToDo(t *testing.T) {
 	var do TaskDO
 	_ = mapper.Auto(dto, &do)
 
+	assert.Equal(t, dto.Array[0].User3.Id, do.Array[0].User3.Id)
+	assert.Equal(t, dto.Array[0].User3.Name, do.Array[0].User3.Name)
+	assert.Equal(t, dto.Array[0].Id, do.Array[0].Id)
+	assert.Equal(t, dto.Array[0].Name, do.Array[0].Name)
+	assert.Equal(t, dto.Array[0].Array3[0], do.Array[0].Array3[0])
+	assert.Equal(t, dto.Array[0].Count[0].Count, do.Array[0].Count[0].Count)
+	assert.Equal(t, dto.Array[0].Count2[0].Count, do.Array[0].Count2[0].Count)
+	assert.Equal(t, dto.Array[0].Count3[0].Count, do.Array[0].Count3[0].Count)
+	assert.Equal(t, dto.Array[0].List.Index(0).Count, do.Array[0].List.Index(0).Count)
+
+	assert.Equal(t, dto.TimeInfo2.Format("2006-01-02 15:04:05"), do.TimeInfo2.ToString("2006-01-02 15:04:05"))
+	assert.Equal(t, dto.TimeInfo.ToString("2006-01-02 15:04:05"), do.TimeInfo.Format("2006-01-02 15:04:05"))
+	assert.Equal(t, dto.Time.Format("2006-01-02 15:04:05"), do.Time)
+	assert.Equal(t, dto.Dec, do.Dec)
+
 	assert.Equal(t, dto.LstType.Index(0).Count, do.LstType.Index(0).Count)
 	assert.Equal(t, dto.List.Index(0).Count, do.List.Index(0).Count)
 	assert.Equal(t, dto.List2.Index(0).Count, do.List2.Index(0).Count)
