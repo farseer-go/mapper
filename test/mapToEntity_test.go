@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/dateTime"
 	"github.com/farseer-go/mapper"
 	"github.com/stretchr/testify/assert"
@@ -24,6 +25,7 @@ type MapEntity struct {
 	UserName   string
 	Sub        SubMapEntity
 	ClusterVer map[int64]*SubMapEntity
+	Head       collections.Dictionary[string, string]
 }
 
 func TestMapToEntity(t *testing.T) {
@@ -47,6 +49,9 @@ func TestMapToEntity(t *testing.T) {
 			Caption: "测试map[64]*",
 		},
 	}
+	m["Head"] = map[string]any{
+		"Content-Type": "application/json",
+	}
 
 	entity := mapper.Single[MapEntity](m)
 	assert.Equal(t, m["AppId"], entity.AppId)
@@ -60,4 +65,5 @@ func TestMapToEntity(t *testing.T) {
 	assert.Equal(t, (m["CreateAt"].(dateTime.DateTime)).ToString("yyyyMMdd"), entity.CreateAt.ToString("yyyyMMdd"))
 	assert.Equal(t, m["ClusterVer"].(map[int64]*SubMapEntity)[2].Age, entity.ClusterVer[2].Age)
 	assert.Equal(t, m["ClusterVer"].(map[int64]*SubMapEntity)[2].Caption, entity.ClusterVer[2].Caption)
+	assert.Equal(t, m["Head"].(map[string]any)["Content-Type"], entity.Head.GetValue("Content-Type"))
 }
