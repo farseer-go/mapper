@@ -216,7 +216,7 @@ func assignment(targetVal reflect.Value, sourceMap map[string]any) {
 						}
 					}
 					if sourceHaveVal {
-						// 结构内字段转换 赋值
+						// 结构内字段转换 赋值。（目标字段是指针结构体，需要先初始化）
 						targetNumFieldValue.Set(reflect.New(targetNumFieldValueType))
 						targetNumFieldValue = targetNumFieldValue.Elem()
 
@@ -441,17 +441,25 @@ func setListVal(objVal any, fieldVal reflect.Value) {
 // 结构赋值
 func setStructVal(targetAnonymous bool, targetFieldType reflect.StructField, targetFieldValue reflect.Value, sourceMap map[string]any) {
 	for j := 0; j < targetFieldValue.NumField(); j++ {
-		item := targetFieldValue.Field(j)
-		itemType := item.Type()
+		targetNumFieldValue := targetFieldValue.Field(j)
+		targetNumFieldValueType := targetNumFieldValue.Type()
 		// 目标字段的名称
 		targetNumField := targetFieldValue.Type().Field(j)
 		targetNumFieldName := targetNumField.Name
 		name := targetFieldType.Name + targetNumFieldName
 
-		if types.IsStruct(itemType) {
-			for i := 0; i < item.NumField(); i++ {
-				itemSubType := item.Field(i).Type()
-				itemSubNumFieldName := item.Type().Field(i).Name
+		if types.IsStruct(targetNumFieldValueType) {
+			if targetNumFieldValue.Kind() == reflect.Pointer {
+				if types.IsNil(targetNumFieldValue) {
+					// 结构内字段转换 赋值。（目标字段是指针结构体，需要先初始化）
+					targetNumFieldValue.Set(reflect.New(targetNumFieldValueType.Elem()))
+				}
+				targetNumFieldValue = targetNumFieldValue.Elem()
+			}
+
+			for i := 0; i < targetNumFieldValue.NumField(); i++ {
+				itemSubType := targetNumFieldValue.Field(i).Type()
+				itemSubNumFieldName := targetNumFieldValue.Type().Field(i).Name
 				name = targetNumFieldName + itemSubNumFieldName
 
 				setFieldValue(targetAnonymous, targetFieldValue.Field(j).Field(i), itemSubType, targetNumField, name, sourceMap)
@@ -480,7 +488,7 @@ func setStructVal(targetAnonymous bool, targetFieldType reflect.StructField, tar
 				//}
 			}
 		} else {
-			setFieldValue(targetAnonymous, targetFieldValue.Field(j), itemType, targetNumField, name, sourceMap)
+			setFieldValue(targetAnonymous, targetFieldValue.Field(j), targetNumFieldValueType, targetNumField, name, sourceMap)
 			//objVal := sourceMap[name]
 			//if targetAnonymous && objVal == nil {
 			//	name = "anonymous_" + targetNumFieldName
