@@ -20,9 +20,10 @@ type SubMapEntity struct {
 
 type MapEntity struct {
 	BaseEntity
-	UserId   int
-	UserName string
-	Sub      SubMapEntity
+	UserId     int
+	UserName   string
+	Sub        SubMapEntity
+	ClusterVer map[int64]*SubMapEntity
 }
 
 func TestMapToEntity(t *testing.T) {
@@ -40,6 +41,12 @@ func TestMapToEntity(t *testing.T) {
 	m["AppName"] = "test"
 	m["UserId"] = 888
 	m["UserName"] = "steden"
+	m["ClusterVer"] = map[int64]*SubMapEntity{
+		2: {
+			Age:     33,
+			Caption: "测试map[64]*",
+		},
+	}
 
 	entity := mapper.Single[MapEntity](m)
 	assert.Equal(t, m["AppId"], entity.AppId)
@@ -51,4 +58,6 @@ func TestMapToEntity(t *testing.T) {
 	assert.Equal(t, m["Exception"].(map[string]any)["Age"], entity.Exception.Age)
 	assert.Equal(t, m["Exception"].(map[string]any)["Caption"], entity.Exception.Caption)
 	assert.Equal(t, (m["CreateAt"].(dateTime.DateTime)).ToString("yyyyMMdd"), entity.CreateAt.ToString("yyyyMMdd"))
+	assert.Equal(t, m["ClusterVer"].(map[int64]*SubMapEntity)[2].Age, entity.ClusterVer[2].Age)
+	assert.Equal(t, m["ClusterVer"].(map[int64]*SubMapEntity)[2].Caption, entity.ClusterVer[2].Caption)
 }
