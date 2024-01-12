@@ -347,55 +347,17 @@ func (receiver *assignObj) setStructVal(targetAnonymous bool, targetFieldType re
 				itemSubType := targetNumFieldValue.Field(i).Type()
 				itemSubNumFieldName := targetNumFieldValue.Type().Field(i).Name
 				name = targetNumFieldName + itemSubNumFieldName
-
+				if targetAnonymous {
+					name = itemSubNumFieldName
+				}
 				receiver.setFieldValue(targetAnonymous, targetNumFieldValue.Field(i), itemSubType, targetNumField, name, sourceMap)
 
-				//objVal := sourceMap[name]
-				//
-				//if targetAnonymous && objVal == nil {
-				//	name = "anonymous_" + targetNumFieldName
-				//	objVal = sourceMap[name]
-				//}
-				//if objVal == nil {
-				//	objVal = sourceMap[targetNumFieldName]
-				//}
-				//if objVal == nil {
-				//	continue
-				//}
-				//objType := reflect.TypeOf(objVal)
-				//if types.IsTime(itemSubType) && types.IsDateTime(objType) {
-				//	targetFieldValue.Field(j).Field(i).Set(parse.ConvertValue(objVal, itemSubType))
-				//} else if types.IsDateTime(itemSubType) && types.IsTime(objType) {
-				//	targetFieldValue.Field(j).Field(i).Set(parse.ConvertValue(objVal, itemSubType))
-				//} else if itemSubType.Kind() == objType.Kind() {
-				//	targetFieldValue.Field(j).Field(i).Set(reflect.ValueOf(objVal))
-				//} else {
-				//	targetFieldValue.Field(j).Field(i).Set(parse.ConvertValue(objVal, itemSubType))
-				//}
 			}
 		} else {
+			if targetAnonymous {
+				name = targetNumFieldName
+			}
 			receiver.setFieldValue(targetAnonymous, targetFieldValue.Field(j), targetNumFieldValueType, targetNumField, name, sourceMap)
-			//objVal := sourceMap[name]
-			//if targetAnonymous && objVal == nil {
-			//	name = "anonymous_" + targetNumFieldName
-			//	objVal = sourceMap[name]
-			//}
-			//if objVal == nil {
-			//	objVal = sourceMap[targetNumFieldName]
-			//}
-			//if objVal == nil {
-			//	continue
-			//}
-			//objType := reflect.TypeOf(objVal)
-			//if types.IsTime(itemType) && types.IsDateTime(objType) {
-			//	targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
-			//} else if types.IsDateTime(itemType) && types.IsTime(objType) {
-			//	targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
-			//} else if itemType.Kind() == objType.Kind() {
-			//	targetFieldValue.Field(j).Set(reflect.ValueOf(objVal))
-			//} else {
-			//	targetFieldValue.Field(j).Set(parse.ConvertValue(objVal, itemType))
-			//}
 		}
 
 	}
@@ -417,10 +379,15 @@ func (receiver *assignObj) setFieldValue(targetAnonymous bool, targetFieldValue 
 			return
 		}
 	}
+	// 实体转换时，多个层级
 	objVal := sourceMap[name]
+	// 当匿名字段时，检索map内是否有值
 	if targetAnonymous && objVal == nil {
-		name = "anonymous_" + targetNumField.Name
-		objVal = sourceMap[name]
+		objVal = sourceMap["anonymous_"+name]
+	}
+	// map转实体时，并且实体时匿名字段时走的逻辑
+	if objVal == nil {
+		objVal = sourceMap[targetNumField.Name+name]
 	}
 	if objVal == nil {
 		objVal = sourceMap[targetNumField.Name]
