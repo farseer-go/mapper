@@ -53,7 +53,7 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 				types.ListAdd(toList, structObj.Interface())
 			}
 			targetNumFieldValue.Set(toList.Elem())
-			return
+			continue
 		}
 
 		if len(targetNumFieldValueType.String()) > 8 && targetNumFieldValueType.String()[len(targetNumFieldValueType.String())-8:] == "ListType" {
@@ -61,7 +61,7 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 				continue
 			}
 			targetNumFieldValue.Set(reflect.ValueOf(sourceValue))
-			return
+			continue
 		}
 
 		if targetNumFieldValueType.Kind() == reflect.Slice {
@@ -69,20 +69,20 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 				continue
 			}
 			receiver.setSliceVal(reflect.ValueOf(sourceValue), targetNumFieldValue)
-			return
+			continue
 		}
 
 		// 集合，//list ,pagelist ,dic 转换 ，直接赋值
 		if types.IsCollections(targetNumFieldValue.Type()) {
 			receiver.setVal(sourceValue, targetNumFieldValue, targetNumFieldStructField)
-			return
+			continue
 		}
 
 		// 结构体
 		if types.IsStruct(targetNumFieldValueType) {
 			if types.IsGoBasicType(targetNumFieldValueType) {
 				receiver.setVal(sourceValue, targetNumFieldValue, targetNumFieldStructField)
-				return
+				continue
 			}
 
 			// 目标是否为指针
@@ -107,12 +107,12 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 					// 指针类型，只有在源值存在的情况下，才赋值。否则跳过
 					receiver.setStructVal(targetNumFieldStructField.Anonymous, targetNumFieldStructField, targetNumFieldValue, sourceMap)
 				}
-				return
+				continue
 			}
 
 			// 非指针，正常走逻辑
 			receiver.setStructVal(targetNumFieldStructField.Anonymous, targetNumFieldStructField, targetNumFieldValue, sourceMap)
-			return
+			continue
 		}
 
 		//正常字段转换
