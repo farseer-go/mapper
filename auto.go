@@ -2,13 +2,8 @@ package mapper
 
 import (
 	"fmt"
-	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/core"
-	"github.com/farseer-go/fs/parse"
-	"github.com/farseer-go/fs/types"
 	"reflect"
-	"strings"
-	"time"
 )
 
 // Auto 对象相互转换
