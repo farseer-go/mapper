@@ -97,22 +97,24 @@ type CountVO2 struct {
 	Count int // 出现的次数
 }
 type TaskDO struct {
-	UserVO3      UserVO4
-	TimeInfo2    dateTime.DateTime
-	TimeInfo     time.Time
-	Time         string
-	Dec          decimal.Decimal
-	LstType      ListType
-	Client       ClientVO
-	List         collections.List[CountVO2]
-	List2        collections.List[CountVO]
-	Array        []UserVO2
-	ArrayStr     []string
-	Id           int
-	Status       State
-	UserId       int64
-	UserName     string
-	Data         collections.Dictionary[string, string]
+	ClusterVer map[int64]*SubMapEntity
+	Data       collections.Dictionary[string, string]
+	UserVO3    UserVO4
+	TimeInfo2  dateTime.DateTime
+	TimeInfo   time.Time
+	Time       string
+	Dec        decimal.Decimal
+	LstType    ListType
+	Client     ClientVO
+	List       collections.List[CountVO2]
+	List2      collections.List[CountVO]
+	Array      []UserVO2
+	ArrayStr   []string
+	Id         int
+	Status     State
+	UserId     int64
+	UserName   string
+
 	CreateAt     time.Time
 	IsEnable     bool
 	IsEnableStr  bool
@@ -132,10 +134,10 @@ type TaskDO struct {
 	IdFloat64    float64
 	UpdateAt     dateTime.DateTime
 	LastUpdateAt time.Time
-	ClusterVer   map[int64]*SubMapEntity
 }
 
 type TaskDTO struct {
+	ClusterVer   map[int64]*SubMapEntity
 	UserVO3      UserVO3
 	TimeInfo2    time.Time
 	TimeInfo     dateTime.DateTime
@@ -173,7 +175,6 @@ type TaskDTO struct {
 	IdFloat64    float64
 	LastUpdateAt dateTime.DateTime
 	product      IProduct
-	ClusterVer   map[int64]*SubMapEntity
 }
 type IProduct interface {
 }
@@ -198,6 +199,13 @@ func TestDtoToDo(t *testing.T) {
 	lst2 := collections.NewList[CountVO](CountVO{Count: 464})
 	arrayUser[0] = UserVO{List: lst, Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray, Count2: mapArray2, Count3: mapArray3}
 	dto := TaskDTO{
+		ClusterVer: map[int64]*SubMapEntity{
+			2: {
+				Age:     33,
+				Caption: "测试map[64]*",
+			},
+		},
+		Data:       collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
 		TimeInfo2:  time.Now(),
 		TimeInfo:   dateTime.Now(),
 		Time:       time.Now(),
@@ -216,7 +224,7 @@ func TestDtoToDo(t *testing.T) {
 			Id:   1,
 			Name: "steden",
 		},
-		Data:         collections.NewDictionaryFromMap(map[string]string{"age": "18", "price": "88.88"}),
+
 		CreateAt:     time.Now(),
 		IsEnable:     true,
 		IsEnableStr:  "true",
@@ -236,12 +244,6 @@ func TestDtoToDo(t *testing.T) {
 		IdFloat64:    64.64,
 		UpdateAt:     time.Now(),
 		LastUpdateAt: dateTime.Now(),
-		ClusterVer: map[int64]*SubMapEntity{
-			2: {
-				Age:     33,
-				Caption: "测试map[64]*",
-			},
-		},
 	}
 	dto.UserVO3.Name = "USER03"
 	dto.UserVO3.Id = 123123

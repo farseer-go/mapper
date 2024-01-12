@@ -41,13 +41,14 @@ func analysis(sourceVal reflect.Value) map[string]any {
 
 	switch sourceVal.Kind() {
 	case reflect.Map:
+		//mapAnalysis(parentName, fieldName, sourceVal, sourceMap)
 		analysisMap("", sourceVal, sourceMap)
 	default:
 		// 结构体
 		for i := 0; i < sourceVal.NumField(); i++ {
 			sourceNumFieldValue := sourceVal.Field(i)
 			sourceNumFieldType := sourceVal.Type().Field(i)
-			analysisField("", sourceNumFieldValue, sourceNumFieldType, sourceMap)
+			analysisField(sourceNumFieldType.Name, sourceNumFieldValue, sourceNumFieldType, sourceMap)
 		}
 	}
 	return sourceMap
@@ -56,11 +57,15 @@ func analysis(sourceVal reflect.Value) map[string]any {
 func analysisMap(parentName string, sourceVal reflect.Value, sourceMap map[string]any) {
 	for _, key := range sourceVal.MapKeys() {
 		sourceMapValue := sourceVal.MapIndex(key)
+		keyName := key.String()
+		if types.IsGoBasicType(key.Type()) {
+			keyName = parse.ToString(key.Interface())
+		}
 		field := reflect.StructField{
-			Name:    key.String(),
+			Name:    keyName,
 			PkgPath: sourceMapValue.Type().PkgPath(),
 		}
-		analysisField(parentName+key.String(), sourceMapValue, field, sourceMap)
+		analysisField(parentName+keyName, sourceMapValue, field, sourceMap)
 	}
 }
 
@@ -87,9 +92,23 @@ func analysisField(parentName string, sourceFieldValue reflect.Value, sourceFiel
 		if sourceFieldValue.Kind() == reflect.Pointer {
 			sourceFieldValue = sourceFieldValue.Elem()
 		}
-		analysisStruct(sourceFieldType.Anonymous, sourceFieldType.Name, sourceFieldType.Name, sourceFieldValue, sourceFieldType.Type, sourceMap)
+		if strings.Contains(parentName, sourceFieldType.Name) {
+			analysisStruct(sourceFieldType.Anonymous, parentName, parentName, sourceFieldValue, sourceFieldType.Type, sourceMap)
+		} else {
+			analysisStruct(sourceFieldType.Anonymous, sourceFieldType.Name, sourceFieldType.Name, sourceFieldValue, sourceFieldType.Type, sourceMap)
+		}
+
 	} else if sourceFieldValueType.Kind() == reflect.Map {
-		analysisMap(parentName, sourceFieldValue.Elem(), sourceMap)
+		if sourceFieldValue.Kind() == reflect.Pointer {
+			sourceFieldValue = sourceFieldValue.Elem()
+		}
+		if strings.Contains(parentName, sourceFieldType.Name) {
+			sourceMap[parentName] = sourceFieldValue.Interface()
+		} else {
+			sourceMap[sourceFieldType.Name] = sourceFieldValue.Interface()
+		}
+		//mapAnalysis(parentName, sourceFieldType.Name, sourceFieldValue, sourceMap)
+		//analysisMap(parentName, sourceFieldValue, sourceMap)
 	} else {
 		// 非结构体遍历
 		itemValue := sourceFieldValue.Interface()
@@ -407,6 +426,8 @@ func setVal(sourceValue any, targetFieldValue reflect.Value, targetFieldType ref
 		if err == nil {
 			targetFieldValue.Set(reflect.ValueOf(timeValue))
 		}
+	} else if sourceValueType.Kind() == reflect.Map {
+		targetFieldValue.Set(reflect.ValueOf(sourceValue))
 	} else {
 		convert := parse.ConvertValue(sourceValue, targetFieldType.Type)
 		targetFieldValue.Set(convert)
