@@ -53,55 +53,71 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 				types.ListAdd(toList, structObj.Interface())
 			}
 			targetNumFieldValue.Set(toList.Elem())
-		} else if len(targetNumFieldValueType.String()) > 8 && targetNumFieldValueType.String()[len(targetNumFieldValueType.String())-8:] == "ListType" {
+			return
+		}
+
+		if len(targetNumFieldValueType.String()) > 8 && targetNumFieldValueType.String()[len(targetNumFieldValueType.String())-8:] == "ListType" {
 			if reflect.ValueOf(sourceValue).Kind() == reflect.Invalid {
 				continue
 			}
 			targetNumFieldValue.Set(reflect.ValueOf(sourceValue))
-		} else if targetNumFieldValueType.Kind() == reflect.Slice {
+			return
+		}
+
+		if targetNumFieldValueType.Kind() == reflect.Slice {
 			if reflect.ValueOf(sourceValue).Kind() == reflect.Invalid {
 				continue
 			}
 			receiver.setSliceVal(reflect.ValueOf(sourceValue), targetNumFieldValue)
-		} else if types.IsCollections(targetNumFieldValue.Type()) { // 集合，//list ,pagelist ,dic 转换 ，直接赋值
+			return
+		}
+
+		// 集合，//list ,pagelist ,dic 转换 ，直接赋值
+		if types.IsCollections(targetNumFieldValue.Type()) {
 			receiver.setVal(sourceValue, targetNumFieldValue, targetNumFieldStructField)
-		} else if types.IsStruct(targetNumFieldValueType) { // 结构体
+			return
+		}
+
+		// 结构体
+		if types.IsStruct(targetNumFieldValueType) {
 			if types.IsGoBasicType(targetNumFieldValueType) {
 				receiver.setVal(sourceValue, targetNumFieldValue, targetNumFieldStructField)
-			} else {
-				// 目标是否为指针
-				if types.IsNil(targetNumFieldValue) {
-					// 判断源值是否为nil
-					targetFieldName := targetNumFieldStructField.Name
-					if targetNumFieldStructField.Anonymous {
-						targetFieldName = "anonymous_" + targetFieldName
-					}
-					sourceHaveVal := false
-					for k, _ := range sourceMap {
-						if strings.HasPrefix(k, targetFieldName) {
-							sourceHaveVal = true
-							break
-						}
-					}
-					if sourceHaveVal {
-						// 结构内字段转换 赋值。（目标字段是指针结构体，需要先初始化）
-						targetNumFieldValue.Set(reflect.New(targetNumFieldValueType))
-						targetNumFieldValue = targetNumFieldValue.Elem()
-
-						// 指针类型，只有在源值存在的情况下，才赋值。否则跳过
-						receiver.setStructVal(targetNumFieldStructField.Anonymous, targetNumFieldStructField, targetNumFieldValue, sourceMap)
-					}
-					// 非指针，正常走逻辑
-				} else {
-					receiver.setStructVal(targetNumFieldStructField.Anonymous, targetNumFieldStructField, targetNumFieldValue, sourceMap)
-				}
-
+				return
 			}
 
-		} else {
-			//正常字段转换
-			receiver.setVal(sourceValue, targetNumFieldValue, targetNumFieldStructField)
+			// 目标是否为指针
+			if types.IsNil(targetNumFieldValue) {
+				// 判断源值是否为nil
+				targetFieldName := targetNumFieldStructField.Name
+				if targetNumFieldStructField.Anonymous {
+					targetFieldName = "anonymous_" + targetFieldName
+				}
+				sourceHaveVal := false
+				for k, _ := range sourceMap {
+					if strings.HasPrefix(k, targetFieldName) {
+						sourceHaveVal = true
+						break
+					}
+				}
+				if sourceHaveVal {
+					// 结构内字段转换 赋值。（目标字段是指针结构体，需要先初始化）
+					targetNumFieldValue.Set(reflect.New(targetNumFieldValueType))
+					targetNumFieldValue = targetNumFieldValue.Elem()
+
+					// 指针类型，只有在源值存在的情况下，才赋值。否则跳过
+					receiver.setStructVal(targetNumFieldStructField.Anonymous, targetNumFieldStructField, targetNumFieldValue, sourceMap)
+				}
+				return
+			}
+
+			// 非指针，正常走逻辑
+			receiver.setStructVal(targetNumFieldStructField.Anonymous, targetNumFieldStructField, targetNumFieldValue, sourceMap)
+			return
 		}
+
+		//正常字段转换
+		receiver.setVal(sourceValue, targetNumFieldValue, targetNumFieldStructField)
+
 	}
 }
 
