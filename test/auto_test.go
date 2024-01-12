@@ -132,6 +132,7 @@ type TaskDO struct {
 	IdFloat64    float64
 	UpdateAt     dateTime.DateTime
 	LastUpdateAt time.Time
+	ClusterVer   map[int64]*SubMapEntity
 }
 
 type TaskDTO struct {
@@ -172,6 +173,7 @@ type TaskDTO struct {
 	IdFloat64    float64
 	LastUpdateAt dateTime.DateTime
 	product      IProduct
+	ClusterVer   map[int64]*SubMapEntity
 }
 type IProduct interface {
 }
@@ -234,6 +236,12 @@ func TestDtoToDo(t *testing.T) {
 		IdFloat64:    64.64,
 		UpdateAt:     time.Now(),
 		LastUpdateAt: dateTime.Now(),
+		ClusterVer: map[int64]*SubMapEntity{
+			2: {
+				Age:     33,
+				Caption: "测试map[64]*",
+			},
+		},
 	}
 	dto.UserVO3.Name = "USER03"
 	dto.UserVO3.Id = 123123
@@ -281,6 +289,8 @@ func TestDtoToDo(t *testing.T) {
 	assert.Equal(t, dto.IdFloat64, do.IdFloat64)
 	assert.Equal(t, dto.UpdateAt.Format("2006-01-02 15:04:05"), do.UpdateAt.ToString("yyyy-MM-dd HH:mm:ss"))
 	assert.Equal(t, dto.LastUpdateAt.ToString("yyyy-MM-dd HH:mm:ss"), do.LastUpdateAt.Format("2006-01-02 15:04:05"))
+	assert.Equal(t, dto.ClusterVer[2].Age, do.ClusterVer[2].Age)
+	assert.Equal(t, dto.ClusterVer[2].Caption, do.ClusterVer[2].Caption)
 
 }
 func TestDoToDto(t *testing.T) {
