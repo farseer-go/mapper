@@ -102,13 +102,18 @@ func analysisField(parentName string, sourceFieldValue reflect.Value, sourceFiel
 		if sourceFieldValue.Kind() == reflect.Pointer {
 			sourceFieldValue = sourceFieldValue.Elem()
 		}
+		if sourceFieldValue.Kind() == reflect.Interface {
+			sourceFieldValue = sourceFieldValue.Elem()
+			analysisMap(parentName, sourceFieldValue, sourceMap)
+		} else {
+			analysisMap(parentName, sourceFieldValue, sourceMap)
+		}
 		if strings.Contains(parentName, sourceFieldType.Name) {
 			sourceMap[parentName] = sourceFieldValue.Interface()
 		} else {
 			sourceMap[sourceFieldType.Name] = sourceFieldValue.Interface()
 		}
 		//mapAnalysis(parentName, sourceFieldType.Name, sourceFieldValue, sourceMap)
-		//analysisMap(parentName, sourceFieldValue, sourceMap)
 	} else {
 		// 非结构体遍历
 		itemValue := sourceFieldValue.Interface()
