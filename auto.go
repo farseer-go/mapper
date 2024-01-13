@@ -17,12 +17,9 @@ func Auto(from, to any) error {
 	// 转换完成之后 执行初始化MapperInit方法
 	defer execInitFunc(reflect.ValueOf(to))
 
-	// 反射来源对象
-	sourceVal := reflect.Indirect(reflect.ValueOf(from))
-
 	// 遍历来源对象
 	var ao analysisOjb
-	ao.analysis(sourceVal)
+	ao.analysis(from)
 
 	// 赋值
 	var so assignObj
@@ -34,10 +31,6 @@ func Auto(from, to any) error {
 
 // StructToMap 结构转map
 func StructToMap(fromObjPtr any, dic any) error {
-	//ts := reflect.TypeOf(fromObjPtr)
-	//if ts.Kind() != reflect.Ptr {
-	//	return fmt.Errorf("toDTO must be a struct pointer")
-	//}
 	fsVal := reflect.Indirect(reflect.ValueOf(fromObjPtr))
 	dicValue := reflect.ValueOf(dic)
 	for i := 0; i < fsVal.NumField(); i++ {

@@ -12,7 +12,7 @@ type assignObj struct {
 }
 
 // 赋值操作
-func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[string]any) {
+func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[string]*valueMeta) {
 	for i := 0; i < targetVal.NumField(); i++ {
 		//获取单个字段类型
 		targetNumFieldStructField := targetVal.Type().Field(i)
@@ -39,13 +39,13 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 
 		//结构体赋值
 		if _, isList := types.IsList(targetNumFieldValue); isList {
-			if reflect.ValueOf(sourceValue).Kind() == reflect.Invalid {
+			if sourceValue.Type == Invalid {
 				continue
 			}
 			sourceType := types.GetListItemArrayType(targetNumFieldValueType)
 			newArr := reflect.New(sourceType)
 			toList := types.ListNew(targetNumFieldValueType)
-			receiver.setSliceVal(reflect.ValueOf(sourceValue), newArr)
+			receiver.setSliceVal(sourceValue.ReflectValue, newArr)
 			sliArray := reflect.Indirect(newArr)
 			for i := 0; i < sliArray.Len(); i++ {
 				//获取数组内的元素
@@ -57,31 +57,31 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 		}
 
 		if len(targetNumFieldValueType.String()) > 8 && targetNumFieldValueType.String()[len(targetNumFieldValueType.String())-8:] == "ListType" {
-			if reflect.ValueOf(sourceValue).Kind() == reflect.Invalid {
+			if sourceValue.Type == Invalid {
 				continue
 			}
-			targetNumFieldValue.Set(reflect.ValueOf(sourceValue))
+			targetNumFieldValue.Set(sourceValue.ReflectValue)
 			continue
 		}
 
 		if targetNumFieldValueType.Kind() == reflect.Slice {
-			if reflect.ValueOf(sourceValue).Kind() == reflect.Invalid {
+			if sourceValue.Type == Invalid {
 				continue
 			}
-			receiver.setSliceVal(reflect.ValueOf(sourceValue), targetNumFieldValue)
+			receiver.setSliceVal(sourceValue.ReflectValue, targetNumFieldValue)
 			continue
 		}
 
 		// 集合，//list ,pagelist ,dic 转换 ，直接赋值
 		if types.IsCollections(targetNumFieldValue.Type()) {
-			receiver.setVal(sourceValue, targetNumFieldValue, targetNumFieldStructField)
+			receiver.setVal(sourceValue.ValueAny, targetNumFieldValue, targetNumFieldStructField)
 			continue
 		}
 
 		// 结构体
 		if types.IsStruct(targetNumFieldValueType) {
 			if types.IsGoBasicType(targetNumFieldValueType) {
-				receiver.setVal(sourceValue, targetNumFieldValue, targetNumFieldStructField)
+				receiver.setVal(sourceValue.ValueAny, targetNumFieldValue, targetNumFieldStructField)
 				continue
 			}
 
@@ -116,7 +116,7 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 		}
 
 		//正常字段转换
-		receiver.setVal(sourceValue, targetNumFieldValue, targetNumFieldStructField)
+		receiver.setVal(sourceValue.ValueAny, targetNumFieldValue, targetNumFieldStructField)
 
 	}
 }
@@ -270,7 +270,7 @@ func (receiver *assignObj) setStruct(fieldVal reflect.Value, fields reflect.Valu
 		defer execInitFunc(fieldVal.Addr())
 	}
 
-	//defer execInitFunc(reflect.ValueOf(tsVal.Field(i).Interface()))
+	//defer execInitFunc(reflect.ReflectValue(tsVal.Field(i).Interface()))
 }
 
 // 设置值
@@ -314,7 +314,7 @@ func (receiver *assignObj) setListVal(objVal any, fieldVal reflect.Value) {
 				if toInfo.Elem().Len() > 0 {
 					newObj.Set(toInfo)
 				}
-				//setStruct(reflect.ValueOf(objVal), newObj.Elem())
+				//setStruct(reflect.ReflectValue(objVal), newObj.Elem())
 				fieldVal.Set(newObj.Elem())
 			} else {
 				convert := parse.ConvertValue(objVal, fieldVal.Type())
@@ -325,7 +325,7 @@ func (receiver *assignObj) setListVal(objVal any, fieldVal reflect.Value) {
 }
 
 // 结构赋值
-func (receiver *assignObj) setStructVal(targetAnonymous bool, targetFieldType reflect.StructField, targetFieldValue reflect.Value, sourceMap map[string]any) {
+func (receiver *assignObj) setStructVal(targetAnonymous bool, targetFieldType reflect.StructField, targetFieldValue reflect.Value, sourceMap map[string]*valueMeta) {
 	for j := 0; j < targetFieldValue.NumField(); j++ {
 		targetNumFieldValue := targetFieldValue.Field(j)
 		targetNumFieldValueType := targetNumFieldValue.Type()
@@ -364,10 +364,10 @@ func (receiver *assignObj) setStructVal(targetAnonymous bool, targetFieldType re
 	// 转换完成之后 执行初始化MapperInit方法
 
 	defer execInitFunc(targetFieldValue.Addr())
-	//defer execInitFunc(reflect.ValueOf(tsVal.Field(i).Interface()))
+	//defer execInitFunc(reflect.ReflectValue(tsVal.Field(i).Interface()))
 }
 
-func (receiver *assignObj) setFieldValue(targetAnonymous bool, targetFieldValue reflect.Value, targetFieldType reflect.Type, targetNumField reflect.StructField, name string, sourceMap map[string]any) {
+func (receiver *assignObj) setFieldValue(targetAnonymous bool, targetFieldValue reflect.Value, targetFieldType reflect.Type, targetNumField reflect.StructField, name string, sourceMap map[string]*valueMeta) {
 	// 忽略未导出的字段
 	if !targetNumField.IsExported() {
 		return
@@ -395,14 +395,14 @@ func (receiver *assignObj) setFieldValue(targetAnonymous bool, targetFieldValue 
 	if objVal == nil {
 		return
 	}
-	objType := reflect.TypeOf(objVal)
-	if types.IsTime(targetFieldType) && types.IsDateTime(objType) {
-		targetFieldValue.Set(parse.ConvertValue(objVal, targetFieldType))
-	} else if types.IsDateTime(targetFieldType) && types.IsTime(objType) {
-		targetFieldValue.Set(parse.ConvertValue(objVal, targetFieldType))
-	} else if targetFieldType.Kind() == objType.Kind() {
-		targetFieldValue.Set(reflect.ValueOf(objVal))
-	} else {
-		targetFieldValue.Set(parse.ConvertValue(objVal, targetFieldType))
+	switch objVal.Type {
+	case GoBasicType:
+		targetFieldValue.Set(parse.ConvertValue(objVal.ValueAny, targetFieldType))
+	default:
+		if targetFieldType.Kind() == objVal.ReflectType.Kind() {
+			targetFieldValue.Set(reflect.ValueOf(objVal))
+		} else {
+			targetFieldValue.Set(parse.ConvertValue(objVal, targetFieldType))
+		}
 	}
 }
