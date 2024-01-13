@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"github.com/farseer-go/fs/flog"
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
 	"reflect"
@@ -22,8 +23,10 @@ func (receiver *analysisOjb) analysis(from any) {
 	switch receiver.Type {
 	case Map:
 		receiver.analysisMap()
-	default:
+	case Struct:
 		receiver.analysisStruct()
+	default:
+		flog.Warningf("mapper未知的类型解析：%s", receiver.ReflectType.String())
 	}
 }
 
@@ -31,12 +34,12 @@ func (receiver *analysisOjb) analysis(from any) {
 func (receiver *analysisOjb) analysisStruct() {
 	parent := receiver.valueMeta
 	// 结构体
-	for i := 0; i < receiver.ReflectValue.NumField(); i++ {
-		numFieldValue := receiver.ReflectValue.Field(i)
-		numFieldType := receiver.RealReflectType.Field(i)
+	for i := 0; i < parent.ReflectValue.NumField(); i++ {
+		numFieldValue := parent.ReflectValue.Field(i)
+		numFieldType := parent.RealReflectType.Field(i)
 
 		// 先分析元数据
-		receiver.NewStructField(numFieldValue, numFieldType, parent)
+		receiver.valueMeta = newStructField(numFieldValue, numFieldType, parent)
 		receiver.analysisField()
 	}
 }
@@ -58,7 +61,7 @@ func (receiver *analysisOjb) analysisMap() {
 		}
 
 		// 先分析元数据
-		receiver.NewStructField(mapValue, field, parent)
+		receiver.valueMeta = newStructField(mapValue, field, parent)
 		receiver.analysisField()
 	}
 }
@@ -69,36 +72,41 @@ func (receiver *analysisOjb) analysisField() {
 	if receiver.IsNil || !receiver.IsExported || receiver.Type == Interface {
 		return
 	}
-	itemName := receiver.Name
-	if receiver.Parent.IsAnonymous {
-		itemName = "anonymous_" + itemName
-	}
 
 	switch receiver.Type {
 	case GoBasicType, CustomList, Slice:
 		if receiver.valueMeta.CanInterface {
-			receiver.sourceMap[itemName] = receiver.valueMeta
+			receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		}
 	case List:
-		array := types.ListToArray(receiver.ReflectValue)
-		receiver.sourceMap[itemName] = NewMeta(reflect.ValueOf(array), receiver.valueMeta)
+		// 获取List中的数组元数
+		array := types.GetListToArray(receiver.ReflectValue)
+		receiver.sourceMap[receiver.Name] = NewMeta(reflect.ValueOf(array), receiver.valueMeta)
 		return
 	case Struct:
-		if strings.Contains(receiver.ParentName, receiver.Name) {
-			receiver.Name = receiver.ParentName
-		} else {
-			receiver.ParentName = receiver.Name
-		}
+		//if strings.Contains(receiver.ParentName, receiver.Name) {
+		//	receiver.Name = receiver.ParentName
+		//} else {
+		//	receiver.ParentName = receiver.Name
+		//}
 		receiver.analysisStruct()
 		return
+	case Dic:
+		// 转成map
+		m := types.GetDictionaryToMap(receiver.ReflectValue)
+		receiver.valueMeta = newStructField(reflect.ValueOf(m), receiver.ReflectStructField, receiver.valueMeta)
+		// 解析map
+		receiver.analysisMap()
+		receiver.sourceMap[receiver.Name] = receiver.valueMeta
 	case Map:
 		// 解析map
 		receiver.analysisMap()
-		if strings.Contains(receiver.ParentName, receiver.Name) {
-			receiver.sourceMap[receiver.ParentName] = receiver.valueMeta
-		} else {
-			receiver.sourceMap[receiver.Name] = receiver.valueMeta
-		}
+		//if strings.Contains(receiver.ParentName, receiver.Name) {
+		//	receiver.sourceMap[receiver.ParentName] = receiver.valueMeta
+		//} else {
+		//	receiver.sourceMap[receiver.Name] = receiver.valueMeta
+		//}
+		receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		return
 	default:
 		// 非结构体遍历
@@ -108,24 +116,4 @@ func (receiver *analysisOjb) analysisField() {
 			receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		}
 	}
-}
-
-// NewStructField 创建子元数据
-func (receiver *analysisOjb) NewStructField(value reflect.Value, field reflect.StructField, parent *valueMeta) {
-	mt := NewMeta(value, parent)
-	mt.ReflectStructField = field
-	mt.Name = parent.Name + field.Name
-	mt.IsExported = field.IsExported()
-	mt.IsAnonymous = field.Anonymous
-
-	// 使用字段内的类型
-	mt.ReflectType = field.Type
-	mt.parseType()
-	receiver.valueMeta = mt
-}
-
-// NewMeta 创建子元数据
-func (receiver *analysisOjb) NewMeta(value reflect.Value, parent *valueMeta) {
-	mt := NewMeta(value, parent)
-	receiver.valueMeta = mt
 }

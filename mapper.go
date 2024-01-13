@@ -63,7 +63,7 @@ func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
 	// List类型、ListAny类型
 	if strings.HasPrefix(sliceOrListOrListAnyType.String(), "collections.List[") || strings.HasPrefix(sliceOrListOrListAnyType.String(), "collections.ListAny") {
 		//var arr []TEntity
-		items := types.ListToArray(sliceOrListOrListAnyValue)
+		items := types.GetListToArray(sliceOrListOrListAnyValue)
 		arr := Array[TEntity](items)
 		//_ = mapper.MapperSlice(items, &arr)
 		return collections.NewList[TEntity](arr...)
@@ -101,7 +101,7 @@ func ToListAny(sliceOrList any) collections.ListAny {
 		return lst
 	}
 	if strings.HasPrefix(sliceOrListType.String(), "collections.List[") {
-		arr := types.ListToArray(sliceOrListVal)
+		arr := types.GetListToArray(sliceOrListVal)
 		return collections.NewListAny(arr...)
 	}
 	panic("sliceOrList入参必须为切片或collections.List集合")

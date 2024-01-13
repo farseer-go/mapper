@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/farseer-go/fs/types"
 	"reflect"
+	"strings"
 )
 
 // 元数据
@@ -13,35 +14,74 @@ type valueMeta struct {
 	ValueAny           any                 // 值
 	ReflectValue       reflect.Value       // 值
 	ReflectType        reflect.Type        // 字段类型
-	RealReflectType    reflect.Type        // 字段真实类型
+	RealReflectType    reflect.Type        // 字段去指针后的类型
 	ReflectStructField reflect.StructField // 字段类型
 	Type               FieldType           // 集合类型
 	IsNil              bool                // 是否为nil
 	IsAnonymous        bool                // 是否为内嵌类型
 	IsExported         bool                // 是否为可导出类型
+	IsIgnore           bool                // 是否为忽略字段
 	CanInterface       bool                // 是否可以转成Any类型
+	Level              int                 // 当前解析的层数（默认为第0层）
 }
 
 // NewMeta 得到类型的元数据
-func NewMeta(from reflect.Value, parent *valueMeta) *valueMeta {
-	meta := &valueMeta{}
-	meta.Parent = parent
-	meta.ReflectValue = reflect.Indirect(from)
-	meta.ReflectType = meta.ReflectValue.Type()
-	meta.Name = meta.ReflectType.Name()
-	meta.IsNil = types.IsNil(meta.ReflectValue)
-	meta.IsAnonymous = false
-
-	// 取出实际值
-	if meta.ReflectValue.CanInterface() {
-		meta.CanInterface = true
-		meta.ValueAny = meta.ReflectValue.Interface()
+func NewMeta(reflectValue reflect.Value, parent *valueMeta) *valueMeta {
+	if reflectValue.Kind() == reflect.Pointer && !reflectValue.IsNil() {
+		reflectValue = reflect.Indirect(reflectValue)
 	}
+	reflectType := reflectValue.Type()
+	meta := NewMetaByType(reflectType, parent)
+	meta.setReflectValue(reflectValue)
+	return meta
+}
+
+// NewMetaByType 得到类型的元数据
+func NewMetaByType(reflectType reflect.Type, parent *valueMeta) *valueMeta {
+	meta := &valueMeta{}
+	if parent != nil {
+		meta.Parent = parent
+		meta.ParentName = parent.Name
+		meta.Level = parent.Level + 1
+	}
+	meta.ReflectType = reflectType
+	meta.IsNil = true
+	meta.IsAnonymous = false
+	meta.IsExported = true
 
 	// 解析类型
 	meta.parseType()
 
 	return meta
+}
+
+// newStructField 创建子元数据
+func newStructField(value reflect.Value, field reflect.StructField, parent *valueMeta) *valueMeta {
+	mt := NewMeta(value, parent)
+	mt.ReflectStructField = field
+	mt.IsExported = field.IsExported()
+	mt.IsAnonymous = field.Anonymous
+
+	// 内嵌字段类型的Name为类型名称，这里不需要
+	if field.Anonymous {
+		mt.Name = parent.Name + ":anonymous:"
+	} else {
+		mt.Name = parent.Name + field.Name
+	}
+
+	// 定义的标签
+	tags := strings.Split(field.Tag.Get("mapper"), ";")
+	for _, tag := range tags {
+		if tag == "ignore" {
+			mt.IsIgnore = true
+			break
+		}
+	}
+
+	// 使用字段内的类型
+	mt.ReflectType = field.Type
+	mt.parseType()
+	return mt
 }
 
 func (receiver *valueMeta) parseType() {
@@ -110,4 +150,18 @@ func (receiver *valueMeta) parseType() {
 		}
 		receiver.Type = Unknown
 	}
+}
+
+func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
+	receiver.ReflectValue = reflectValue
+	receiver.CanInterface = receiver.ReflectValue.CanInterface()
+	receiver.IsNil = types.IsNil(receiver.ReflectValue)
+
+	// 取出实际值
+	if receiver.CanInterface && !receiver.IsNil {
+		receiver.ValueAny = receiver.ReflectValue.Interface()
+	}
+
+	// 解析类型
+	receiver.parseType()
 }

@@ -12,8 +12,6 @@ const (
 	Dic                          // 字典类型
 	GoBasicType                  // 基础类型
 	Struct                       // 结构体类型
-	DateTime                     // 结构体类型
-	Decimal                      // 结构体类型
 	Chan                         // 结构体类型
 	Interface                    // 结构体类型
 	Func                         // 结构体类型

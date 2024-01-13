@@ -8,14 +8,14 @@ import (
 
 // Auto 对象相互转换
 func Auto(from, to any) error {
-	ts := reflect.TypeOf(to)
+	targetVal := reflect.ValueOf(to)
 	//判断是否指针
-	if ts.Kind() != reflect.Ptr {
+	if targetVal.Kind() != reflect.Pointer {
 		return fmt.Errorf("toDTO must be a struct pointer")
 	}
 
 	// 转换完成之后 执行初始化MapperInit方法
-	defer execInitFunc(reflect.ValueOf(to))
+	defer execInitFunc(targetVal)
 
 	// 遍历来源对象
 	var ao analysisOjb
@@ -23,7 +23,6 @@ func Auto(from, to any) error {
 
 	// 赋值
 	var so assignObj
-	targetVal := reflect.ValueOf(to).Elem()
 	so.assignment(targetVal, ao.sourceMap)
 
 	return nil
