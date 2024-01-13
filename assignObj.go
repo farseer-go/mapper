@@ -25,15 +25,6 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 	}
 
 	receiver.assembleStruct(nil)
-	//parent := receiver.valueMeta
-	//for i := 0; i < parent.ReflectValue.NumField(); i++ {
-	//	numFieldValue := parent.ReflectValue.Field(i)
-	//	numFieldType := parent.RealReflectType.Field(i)
-	//
-	//	// 先分析元数据
-	//	receiver.valueMeta = newStructField(numFieldValue, numFieldType, parent)
-	//	receiver.assignField()
-	//}
 
 	return nil
 }
