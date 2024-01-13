@@ -47,11 +47,14 @@ func (receiver *analysisOjb) analysisStruct() {
 // 解析map
 func (receiver *analysisOjb) analysisMap() {
 	parent := receiver.valueMeta
+	keyIsGoBasicType := types.IsGoBasicType(receiver.ReflectValue.Type().Key())
+
 	for _, mapKey := range receiver.ReflectValue.MapKeys() {
 		mapValue := receiver.ReflectValue.MapIndex(mapKey)
 		keyName := mapKey.String()
 
-		if types.IsGoBasicType(mapKey.Type()) {
+		// keyName有可能出现<int64>这种值，所以如果是基础类型，再取一次。
+		if keyIsGoBasicType {
 			keyName = parse.ToString(mapKey.Interface())
 		}
 
@@ -94,7 +97,9 @@ func (receiver *analysisOjb) analysisField() {
 	case Dic:
 		// 转成map
 		m := types.GetDictionaryToMap(receiver.ReflectValue)
-		receiver.valueMeta = newStructField(reflect.ValueOf(m), receiver.ReflectStructField, receiver.valueMeta)
+		// 这里不能用receiver.valueMeta作为父级传入，而必须传receiver.valueMeta.Parent
+		// 因为receiver.ReflectStructField是同一个，否则会出现Name名称重复，如：原来是A，变成AA
+		receiver.valueMeta = newStructField(m, receiver.ReflectStructField, receiver.valueMeta.Parent)
 		// 解析map
 		receiver.analysisMap()
 		receiver.sourceMap[receiver.Name] = receiver.valueMeta

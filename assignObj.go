@@ -167,11 +167,32 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 }
 
 func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
-
+	parent := receiver.valueMeta
+	receiver.valueMeta = parent
 }
 
 func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
+	parent := receiver.valueMeta
 
+	// map[K]V
+	arrType := types.GetDictionaryMapType(receiver.ReflectType)
+	// new []T
+	newArr := reflect.MakeSlice(arrType, 0, 0)
+	// 组装[]T 元数据
+	receiver.valueMeta = NewMeta(newArr, receiver.valueMeta)
+	// 赋值组装的字段
+	receiver.assembleSlice(sourceMeta)
+
+	// new List[T]
+	toList := types.ListNew(receiver.ReflectType)
+	for i := 0; i < receiver.ReflectValue.Len(); i++ {
+		//获取数组内的元素
+		structObj := receiver.ReflectValue.Index(i)
+		types.ListAdd(toList, structObj.Interface())
+	}
+
+	receiver.valueMeta = parent
+	receiver.ReflectValue.Set(toList)
 }
 
 func (receiver *assignObj) getSourceValue() *valueMeta {

@@ -79,8 +79,10 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 	}
 
 	// 使用字段内的类型
-	mt.ReflectType = field.Type
-	mt.parseType()
+	if field.Type != nil {
+		mt.ReflectType = field.Type
+		mt.parseType()
+	}
 	return mt
 }
 
@@ -93,7 +95,7 @@ func (receiver *valueMeta) parseType() {
 	}
 
 	// 取真实的类型
-	if receiver.ReflectType.Kind() == reflect.Interface && receiver.ReflectValue.CanInterface() {
+	if receiver.ReflectType.Kind() == reflect.Interface && !receiver.IsNil && receiver.ReflectValue.CanInterface() {
 		receiver.ReflectValue = receiver.ReflectValue.Elem()
 		receiver.RealReflectType = receiver.ReflectValue.Type()
 	}
