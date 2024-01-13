@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+const (
+	mapSplitTag       = ":-:"
+	anonymousSplitTag = ":anonymous:"
+)
+
 // 元数据
 type valueMeta struct {
 	Parent             *valueMeta          // 上级元数据
@@ -23,6 +28,7 @@ type valueMeta struct {
 	IsIgnore           bool                // 是否为忽略字段
 	CanInterface       bool                // 是否可以转成Any类型
 	Level              int                 // 当前解析的层数（默认为第0层）
+	MapKey             reflect.Value       // map key
 }
 
 // NewMeta 得到类型的元数据
@@ -43,6 +49,7 @@ func NewMetaByType(reflectType reflect.Type, parent *valueMeta) *valueMeta {
 		meta.Parent = parent
 		meta.ParentName = parent.Name
 		meta.Level = parent.Level + 1
+		meta.Name = parent.Name + reflectType.Name()
 	}
 	meta.ReflectType = reflectType
 	meta.IsNil = true
@@ -64,7 +71,7 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 
 	// 内嵌字段类型的Name为类型名称，这里不需要
 	if field.Anonymous {
-		mt.Name = parent.Name + ":anonymous:"
+		mt.Name = parent.Name + anonymousSplitTag
 	} else {
 		mt.Name = parent.Name + field.Name
 	}

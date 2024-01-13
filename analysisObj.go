@@ -48,6 +48,7 @@ func (receiver *analysisOjb) analysisStruct() {
 func (receiver *analysisOjb) analysisMap() {
 	parent := receiver.valueMeta
 	keyIsGoBasicType := types.IsGoBasicType(receiver.ReflectValue.Type().Key())
+	receiver.sourceMap[receiver.Name] = receiver.valueMeta
 
 	for _, mapKey := range receiver.ReflectValue.MapKeys() {
 		mapValue := receiver.ReflectValue.MapIndex(mapKey)
@@ -59,12 +60,13 @@ func (receiver *analysisOjb) analysisMap() {
 		}
 
 		field := reflect.StructField{
-			Name:    keyName,
+			Name:    mapSplitTag + keyName,
 			PkgPath: mapValue.Type().PkgPath(),
 		}
 
 		// 先分析元数据
 		receiver.valueMeta = newStructField(mapValue, field, parent)
+		receiver.valueMeta.MapKey = mapKey // 设置MapKey
 		receiver.analysisField()
 	}
 }

@@ -39,7 +39,7 @@ func (receiver *assignObj) assignField() {
 		return
 	}
 
-	if sourceValue == nil && receiver.Type != Struct {
+	if sourceValue == nil && (receiver.Type != Struct && receiver.Type != Map && receiver.Type != Dic) {
 		return
 	}
 
@@ -75,7 +75,7 @@ func (receiver *assignObj) assignField() {
 func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
 
-	// T
+	// 从List类型中得source类型：T
 	arrType := types.GetListItemArrayType(receiver.ReflectType)
 	// new []T
 	newArr := reflect.MakeSlice(arrType, 0, 0)
@@ -167,32 +167,47 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 }
 
 func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
-	parent := receiver.valueMeta
-	receiver.valueMeta = parent
+	// 类型完全相等时，直接赋值
+	if m, exists := receiver.sourceMap[receiver.Name]; exists {
+		if m.ReflectType.String() == receiver.ReflectType.String() {
+			receiver.ReflectValue.Set(m.ReflectValue)
+			return
+		}
+	}
+
+	// 如果字段map为nil，则需要初始化
+	if receiver.ReflectValue.IsNil() {
+		receiver.ReflectValue.Set(reflect.MakeMap(receiver.ReflectType))
+	}
+
+	// 遍历
+	valType := receiver.ReflectType.Elem()
+	for k, v := range receiver.sourceMap {
+		if strings.HasPrefix(k, receiver.Name+mapSplitTag) {
+			val := parse.ConvertValue(v.ReflectValue.Interface(), valType)
+			receiver.ReflectValue.SetMapIndex(v.MapKey, val)
+		}
+	}
 }
 
 func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
 
-	// map[K]V
-	arrType := types.GetDictionaryMapType(receiver.ReflectType)
-	// new []T
-	newArr := reflect.MakeSlice(arrType, 0, 0)
-	// 组装[]T 元数据
-	receiver.valueMeta = NewMeta(newArr, receiver.valueMeta)
+	// 从Dictionary类型中得source类型：map[K]V
+	mapType := types.GetDictionaryMapType(receiver.ReflectType)
+	// new map[K]V
+	newMap := reflect.MakeMap(mapType)
+	// 组装map[K]V 元数据
+	receiver.valueMeta = NewMeta(newMap, receiver.valueMeta)
 	// 赋值组装的字段
-	receiver.assembleSlice(sourceMeta)
+	receiver.assembleMap(sourceMeta)
 
-	// new List[T]
-	toList := types.ListNew(receiver.ReflectType)
-	for i := 0; i < receiver.ReflectValue.Len(); i++ {
-		//获取数组内的元素
-		structObj := receiver.ReflectValue.Index(i)
-		types.ListAdd(toList, structObj.Interface())
-	}
+	// new Dictionary[K,V]
+	newDictionary := types.DictionaryNew(parent.ReflectType)
+	types.DictionaryAddMap(newDictionary, receiver.ReflectValue.Interface())
 
 	receiver.valueMeta = parent
-	receiver.ReflectValue.Set(toList)
+	receiver.ReflectValue.Set(newDictionary.Elem()) // newDictionary是指针类型，所以要取址
 }
 
 func (receiver *assignObj) getSourceValue() *valueMeta {
