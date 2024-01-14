@@ -20,7 +20,6 @@ type CountVO2 struct {
 }
 
 type UserVO struct {
-	//List2  collections.List[CountVO2]
 	List   collections.List[CountVO]
 	Id     int64
 	Name   string

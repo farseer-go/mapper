@@ -117,33 +117,6 @@ func (do *TaskDO) MapperInit() {
 	println("已执行 TaskDO 初始化方法 MapperInit ")
 }
 
-func TestDtoToDoArray(t *testing.T) {
-	mapArray := make(map[int]*CountVO, 1)
-	mapArray[0] = &CountVO{Count: 999}
-	mapArray2 := make(map[int]CountVO)
-	mapArray2[0] = CountVO{Count: 888}
-	mapArray3 := make(map[int]CountVO2)
-	mapArray3[0] = CountVO2{Count: 777}
-	arrayUser := make([]UserVO, 1)
-	arrayStr := make([]string, 1)
-	arrayStr[0] = "数组字符串测试"
-	arrayUser[0] = UserVO{Id: 33, Name: "san", Array3: arrayStr, User3: UserVO3{Id: 55, Name: "user3"}, Count: mapArray, Count2: mapArray2, Count3: mapArray3}
-	dto := TaskDTO{
-		Array:    arrayUser,
-		ArrayStr: arrayStr,
-	}
-	var do TaskDO
-	_ = mapper.Auto(dto, &do)
-	assert.Equal(t, dto.Array[0].User3.Id, do.Array[0].User3.Id)
-	assert.Equal(t, dto.Array[0].User3.Name, do.Array[0].User3.Name)
-	assert.Equal(t, dto.Array[0].Id, do.Array[0].Id)
-	assert.Equal(t, dto.Array[0].Name, do.Array[0].Name)
-	assert.Equal(t, dto.Array[0].Array3[0], do.Array[0].Array3[0])
-	assert.Equal(t, dto.Array[0].Count[0].Count, do.Array[0].Count[0].Count)
-	assert.Equal(t, dto.Array[0].Count2[0].Count, do.Array[0].Count2[0].Count)
-	assert.Equal(t, dto.Array[0].Count3[0].Count, do.Array[0].Count3[0].Count)
-}
-
 func TestDtoToDoList(t *testing.T) {
 	arrayUser := make([]UserVO, 1)
 	lst3 := ListType(collections.NewList[CountVO](CountVO{Count: 678}))
