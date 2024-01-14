@@ -18,12 +18,12 @@ func Auto(from, to any) error {
 	defer execInitFunc(targetVal)
 
 	// 遍历来源对象
-	var ao analysisOjb
-	ao.analysis(from)
+	var fAnalysis analysisOjb
+	fAnalysis.analysis(from)
 
 	// 赋值
-	var so assignObj
-	so.assignment(targetVal, ao.sourceMap)
+	var tAssign assignObj
+	tAssign.assignment(targetVal, fAnalysis.sourceMap)
 
 	return nil
 }

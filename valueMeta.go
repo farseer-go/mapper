@@ -9,7 +9,7 @@ import (
 
 const (
 	mapSplitTag       = ":-:"
-	anonymousSplitTag = ":anonymous:"
+	anonymousSplitTag = "" // :anonymous:
 )
 
 // 元数据
@@ -17,6 +17,7 @@ type valueMeta struct {
 	Parent             *valueMeta          // 上级元数据
 	ParentName         string              // 上级字段名称
 	Name               string              // 字段名称
+	RegexPattern       string              // 字段名称匹配规则
 	ValueAny           any                 // 值
 	ReflectValue       reflect.Value       // 值
 	ReflectType        reflect.Type        // 字段类型
@@ -89,7 +90,7 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 	case Slice:
 		mt.Name = parent.Name + fmt.Sprintf("[%s]", field.Name)
 	case Map, Dic:
-		mt.Name = parent.Name + fmt.Sprintf("[\"%s\"]", field.Name)
+		mt.Name = parent.Name + fmt.Sprintf("{%s}", field.Name)
 	default:
 		// 内嵌字段类型的Name为类型名称，这里用标记代替
 		if field.Anonymous {
@@ -98,6 +99,12 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 			mt.Name = parent.Name + field.Name
 		}
 	}
+	mt.RegexPattern = mt.Name
+	mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "{", "(\\{|)")
+	mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "}", "(\\}|)")
+
+	mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "[", "(\\[|)")
+	mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "]", "(\\]|)")
 	return mt
 }
 

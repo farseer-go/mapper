@@ -2,9 +2,11 @@ package mapper
 
 import (
 	"fmt"
+	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -183,7 +185,7 @@ func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 	// 遍历
 	valType := receiver.ReflectType.Elem()
 	for k, v := range receiver.sourceMap {
-		if strings.HasPrefix(k, receiver.Name+"[\"") {
+		if strings.HasPrefix(k, receiver.Name+"{") {
 			val := parse.ConvertValue(v.ReflectValue.Interface(), valType)
 			receiver.ReflectValue.SetMapIndex(v.MapKey, val)
 		}
@@ -211,7 +213,32 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 }
 
 func (receiver *assignObj) getSourceValue() *valueMeta {
+	if receiver.Name == "" {
+		return nil
+	}
+
 	// 找到源字段
 	sourceValue := receiver.sourceMap[receiver.Name]
+	if sourceValue != nil {
+		return sourceValue
+	}
+
+	// 使用正则
+	lst := collections.NewList[*valueMeta]()
+	for _, v := range receiver.sourceMap {
+		re := regexp.MustCompile(v.RegexPattern)
+		if re.MatchString(receiver.Name) {
+			lst.Add(v)
+		}
+	}
+
+	sourceValue = lst.OrderByDescending(func(item *valueMeta) any {
+		return len(item.Name)
+	}).First()
+
+	// 没有直接匹配到
+	//name := receiver.Name
+	// [\{|]Exception[\}|][\{|]Age[\}|]
+	// ExceptionAge
 	return sourceValue
 }
