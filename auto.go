@@ -23,9 +23,7 @@ func Auto(from, to any) error {
 
 	// 赋值
 	var tAssign assignObj
-	tAssign.assignment(targetVal, fAnalysis.sourceMap)
-
-	return nil
+	return tAssign.assignment(targetVal, fAnalysis.sourceMap)
 }
 
 // StructToMap 结构转map

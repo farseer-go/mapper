@@ -87,6 +87,8 @@ func (receiver *analysisOjb) analysisDic() {
 	receiver.valueMeta = newStructField(m, receiver.ReflectStructField, receiver.valueMeta.Parent)
 	// 解析map
 	receiver.analysisMap()
+	// Dic统一将转成map类型，方便赋值时直接取map，而不用区分类型
+	receiver.Type = Map
 	receiver.sourceMap[receiver.Name] = receiver.valueMeta
 }
 
