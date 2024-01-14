@@ -42,6 +42,7 @@ func (receiver *analysisOjb) analysisStruct() {
 		receiver.valueMeta = newStructField(numFieldValue, numFieldType, parent)
 		receiver.analysisField()
 	}
+	receiver.valueMeta = parent
 }
 
 // 解析map
@@ -52,7 +53,7 @@ func (receiver *analysisOjb) analysisMap() {
 	if receiver.Level > 0 {
 		receiver.sourceMap[receiver.Name] = receiver.valueMeta
 	}
-	miter := receiver.ReflectValue.MapRange()
+	miter := parent.ReflectValue.MapRange()
 	for miter.Next() {
 		mapKey := miter.Key()
 		mapValue := miter.Value()
@@ -73,9 +74,11 @@ func (receiver *analysisOjb) analysisMap() {
 		receiver.valueMeta.MapKey = mapKey // 设置MapKey
 		receiver.analysisField()
 	}
+
+	receiver.valueMeta = parent
 }
 
-// 解析map/struct的字段
+// 解析字段
 func (receiver *analysisOjb) analysisField() {
 	// 不可导出类型，则退出
 	if receiver.IsNil || !receiver.IsExported || receiver.Type == Interface {
@@ -83,21 +86,18 @@ func (receiver *analysisOjb) analysisField() {
 	}
 
 	switch receiver.Type {
-	case GoBasicType, CustomList, Slice:
+	case GoBasicType, CustomList:
 		if receiver.valueMeta.CanInterface {
 			receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		}
+	case Slice:
+		receiver.analysisSlice()
 	case List:
 		// 获取List中的数组元数
 		array := types.GetListToArray(receiver.ReflectValue)
 		receiver.sourceMap[receiver.Name] = NewMeta(reflect.ValueOf(array), receiver.valueMeta)
 		return
 	case Struct:
-		//if strings.Contains(receiver.ParentName, receiver.Name) {
-		//	receiver.Name = receiver.ParentName
-		//} else {
-		//	receiver.ParentName = receiver.Name
-		//}
 		receiver.analysisStruct()
 		return
 	case Dic:
@@ -112,11 +112,6 @@ func (receiver *analysisOjb) analysisField() {
 	case Map:
 		// 解析map
 		receiver.analysisMap()
-		//if strings.Contains(receiver.ParentName, receiver.Name) {
-		//	receiver.sourceMap[receiver.ParentName] = receiver.valueMeta
-		//} else {
-		//	receiver.sourceMap[receiver.Name] = receiver.valueMeta
-		//}
 		receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		return
 	default:
@@ -127,4 +122,28 @@ func (receiver *analysisOjb) analysisField() {
 			receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		}
 	}
+}
+
+// 解析切片
+func (receiver *analysisOjb) analysisSlice() {
+	parent := receiver.valueMeta
+	// 先完整的赋值（如果目标类型一致，则可以直接取出来，不用分析）
+	if receiver.valueMeta.CanInterface {
+		receiver.sourceMap[receiver.Name] = receiver.valueMeta
+	}
+
+	for i := 0; i < parent.ReflectValue.Len(); i++ {
+		sVal := parent.ReflectValue.Index(i)
+
+		field := reflect.StructField{
+			Name:    parse.ToString(i),
+			PkgPath: "",
+		}
+
+		// 先分析元数据
+		receiver.valueMeta = newStructField(sVal, field, parent)
+		receiver.analysisField()
+	}
+
+	receiver.valueMeta = parent
 }

@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"fmt"
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
@@ -84,13 +85,18 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 		mt.parseType()
 	}
 
-	// 内嵌字段类型的Name为类型名称，这里不需要
-	if field.Anonymous {
-		mt.Name = parent.Name + anonymousSplitTag
-	} else if mt.Type == Map {
-		mt.Name = parent.Name + mapSplitTag + field.Name
-	} else {
-		mt.Name = parent.Name + field.Name
+	switch parent.Type {
+	case Slice:
+		mt.Name = parent.Name + fmt.Sprintf("[%s]", field.Name)
+	case Map, Dic:
+		mt.Name = parent.Name + fmt.Sprintf("[\"%s\"]", field.Name)
+	default:
+		// 内嵌字段类型的Name为类型名称，这里用标记代替
+		if field.Anonymous {
+			mt.Name = parent.Name + anonymousSplitTag
+		} else {
+			mt.Name = parent.Name + field.Name
+		}
 	}
 	return mt
 }

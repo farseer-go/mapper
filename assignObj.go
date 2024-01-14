@@ -183,7 +183,7 @@ func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 	// 遍历
 	valType := receiver.ReflectType.Elem()
 	for k, v := range receiver.sourceMap {
-		if strings.HasPrefix(k, receiver.Name+mapSplitTag) {
+		if strings.HasPrefix(k, receiver.Name+"[\"") {
 			val := parse.ConvertValue(v.ReflectValue.Interface(), valType)
 			receiver.ReflectValue.SetMapIndex(v.MapKey, val)
 		}
