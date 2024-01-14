@@ -48,17 +48,17 @@ func (receiver *assignObj) assignField() {
 	switch receiver.Type {
 	case List:
 		// 只处理数据源是切片的（源数据List也会转成切片）
-		if sourceValue.Type != Slice {
+		if sourceValue.Type != Slice || sourceValue == nil {
 			return
 		}
 		receiver.assembleList(sourceValue)
-	case PageList:
-	case CustomList:
 	case Slice:
-		if sourceValue.Type != Slice {
+		if sourceValue.Type != Slice || sourceValue == nil {
 			return
 		}
 		receiver.assembleSlice(sourceValue)
+	case PageList:
+	case CustomList:
 	case ArrayType:
 	case GoBasicType:
 		val := parse.ConvertValue(sourceValue.ValueAny, receiver.ReflectType)
@@ -190,7 +190,7 @@ func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 	//		receiver.ReflectValue.SetMapIndex(v.MapKey, val)
 	//	}
 	//}
-	if sourceMeta != nil {
+	if sourceMeta != nil && sourceMeta.Type == Map {
 		iter := sourceMeta.ReflectValue.MapRange()
 		for iter.Next() {
 			val := parse.ConvertValue(iter.Value().Interface(), valType)

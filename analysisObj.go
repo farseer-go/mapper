@@ -78,6 +78,18 @@ func (receiver *analysisOjb) analysisMap() {
 	receiver.valueMeta = parent
 }
 
+// 解析字典
+func (receiver *analysisOjb) analysisDic() {
+	// 转成map
+	m := types.GetDictionaryToMap(receiver.ReflectValue)
+	// 这里不能用receiver.valueMeta作为父级传入，而必须传receiver.valueMeta.Parent
+	// 因为receiver.ReflectStructField是同一个，否则会出现Name名称重复，如：原来是A，变成AA
+	receiver.valueMeta = newStructField(m, receiver.ReflectStructField, receiver.valueMeta.Parent)
+	// 解析map
+	receiver.analysisMap()
+	receiver.sourceMap[receiver.Name] = receiver.valueMeta
+}
+
 // 解析字段
 func (receiver *analysisOjb) analysisField() {
 	// 不可导出类型，则退出
@@ -93,22 +105,11 @@ func (receiver *analysisOjb) analysisField() {
 	case Slice:
 		receiver.analysisSlice()
 	case List:
-		// 获取List中的数组元数
-		array := types.GetListToArray(receiver.ReflectValue)
-		receiver.sourceMap[receiver.Name] = NewMeta(reflect.ValueOf(array), receiver.valueMeta)
-		return
+		receiver.analysisList()
 	case Struct:
 		receiver.analysisStruct()
-		return
 	case Dic:
-		// 转成map
-		m := types.GetDictionaryToMap(receiver.ReflectValue)
-		// 这里不能用receiver.valueMeta作为父级传入，而必须传receiver.valueMeta.Parent
-		// 因为receiver.ReflectStructField是同一个，否则会出现Name名称重复，如：原来是A，变成AA
-		receiver.valueMeta = newStructField(m, receiver.ReflectStructField, receiver.valueMeta.Parent)
-		// 解析map
-		receiver.analysisMap()
-		receiver.sourceMap[receiver.Name] = receiver.valueMeta
+		receiver.analysisDic()
 	case Map:
 		// 解析map
 		receiver.analysisMap()
@@ -146,4 +147,13 @@ func (receiver *analysisOjb) analysisSlice() {
 	}
 
 	receiver.valueMeta = parent
+}
+
+// 解析List
+func (receiver *analysisOjb) analysisList() {
+	// 获取List中的数组元数
+	array := types.GetListToArray(receiver.ReflectValue)
+	if array != nil {
+		receiver.sourceMap[receiver.Name] = NewMeta(reflect.ValueOf(array), receiver.valueMeta)
+	}
 }
