@@ -48,10 +48,14 @@ func (receiver *analysisOjb) analysisStruct() {
 func (receiver *analysisOjb) analysisMap() {
 	parent := receiver.valueMeta
 	keyIsGoBasicType := types.IsGoBasicType(receiver.ReflectValue.Type().Key())
-	receiver.sourceMap[receiver.Name] = receiver.valueMeta
-
-	for _, mapKey := range receiver.ReflectValue.MapKeys() {
-		mapValue := receiver.ReflectValue.MapIndex(mapKey)
+	// 存第一层，没有意义。显示太臃肿
+	if receiver.Level > 0 {
+		receiver.sourceMap[receiver.Name] = receiver.valueMeta
+	}
+	miter := receiver.ReflectValue.MapRange()
+	for miter.Next() {
+		mapKey := miter.Key()
+		mapValue := miter.Value()
 		keyName := mapKey.String()
 
 		// keyName有可能出现<int64>这种值，所以如果是基础类型，再取一次。
@@ -60,7 +64,7 @@ func (receiver *analysisOjb) analysisMap() {
 		}
 
 		field := reflect.StructField{
-			Name:    mapSplitTag + keyName,
+			Name:    keyName,
 			PkgPath: mapValue.Type().PkgPath(),
 		}
 

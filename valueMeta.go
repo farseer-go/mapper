@@ -69,13 +69,6 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 	mt.IsExported = field.IsExported()
 	mt.IsAnonymous = field.Anonymous
 
-	// 内嵌字段类型的Name为类型名称，这里不需要
-	if field.Anonymous {
-		mt.Name = parent.Name + anonymousSplitTag
-	} else {
-		mt.Name = parent.Name + field.Name
-	}
-
 	// 定义的标签
 	tags := strings.Split(field.Tag.Get("mapper"), ";")
 	for _, tag := range tags {
@@ -89,6 +82,15 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 	if field.Type != nil {
 		mt.ReflectType = field.Type
 		mt.parseType()
+	}
+
+	// 内嵌字段类型的Name为类型名称，这里不需要
+	if field.Anonymous {
+		mt.Name = parent.Name + anonymousSplitTag
+	} else if mt.Type == Map {
+		mt.Name = parent.Name + mapSplitTag + field.Name
+	} else {
+		mt.Name = parent.Name + field.Name
 	}
 	return mt
 }
