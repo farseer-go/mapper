@@ -170,9 +170,9 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 
 func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 	// 类型完全相等时，直接赋值
-	if m, exists := receiver.sourceMap[receiver.Name]; exists {
-		if m.ReflectType.String() == receiver.ReflectType.String() {
-			receiver.ReflectValue.Set(m.ReflectValue)
+	if sourceMeta != nil {
+		if sourceMeta.RealReflectType.String() == receiver.RealReflectType.String() {
+			receiver.ReflectValue.Set(sourceMeta.ReflectValue)
 			return
 		}
 	}
@@ -184,10 +184,17 @@ func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 
 	// 遍历
 	valType := receiver.ReflectType.Elem()
-	for k, v := range receiver.sourceMap {
-		if strings.HasPrefix(k, receiver.Name+"{") {
-			val := parse.ConvertValue(v.ReflectValue.Interface(), valType)
-			receiver.ReflectValue.SetMapIndex(v.MapKey, val)
+	//for k, v := range receiver.sourceMap {
+	//	if strings.HasPrefix(k, receiver.Name+"{") {
+	//		val := parse.ConvertValue(v.ReflectValue.Interface(), valType)
+	//		receiver.ReflectValue.SetMapIndex(v.MapKey, val)
+	//	}
+	//}
+	if sourceMeta != nil {
+		iter := sourceMeta.ReflectValue.MapRange()
+		for iter.Next() {
+			val := parse.ConvertValue(iter.Value().Interface(), valType)
+			receiver.ReflectValue.SetMapIndex(iter.Key(), val)
 		}
 	}
 }
