@@ -35,15 +35,12 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 	// 目标是否为指针
 	// 指针类型，只有在源值存在的情况下，才赋值。否则跳过
-	if sourceMeta != nil {
+	if sourceMeta != nil || (receiver.valueMeta.IsAddr && receiver.valueMeta.IsNil) {
 		// 如果是指针，且值为nil时。receiver.ReflectType得到的是指针类型。
 		// 所以这里必须使用去指针的原始类型：receiver.RealReflectType
 		// 结构内字段转换 赋值。（目标字段是指针结构体，需要先初始化）
-		receiver.NewReflectValue()
-	}
 
-	// 在这种情况，只能初始化目标的指针结构体了，否则遍历时会异常
-	if sourceMeta == nil && receiver.valueMeta.IsAddr && receiver.valueMeta.IsNil {
+		// 满足receiver.valueMeta.IsAddr && receiver.valueMeta.IsNil时也要执行，否则遍历时会异常
 		receiver.NewReflectValue()
 	}
 

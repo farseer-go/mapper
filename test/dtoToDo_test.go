@@ -132,5 +132,4 @@ func TestDtoToDo(t *testing.T) {
 	assert.Equal(t, dto.LastUpdateAt.ToString("yyyy-MM-dd HH:mm:ss"), do.LastUpdateAt.Format("2006-01-02 15:04:05"))
 	assert.Equal(t, dto.ClusterVer[2].Age, do.ClusterVer[2].Age)
 	assert.Equal(t, dto.ClusterVer[2].Caption, do.ClusterVer[2].Caption)
-
 }

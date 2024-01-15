@@ -103,13 +103,13 @@ func (receiver *analysisOjb) analysisField() {
 	}
 
 	switch receiver.Type {
-	case GoBasicType, CustomList, Interface:
-		if receiver.valueMeta.CanInterface {
-			receiver.sourceMap[receiver.Name] = receiver.valueMeta
-		}
+	case GoBasicType, Interface:
+	// 不需要处理
 	case Slice:
 		receiver.analysisSlice()
 	case List:
+		receiver.analysisList()
+	case CustomList:
 		receiver.analysisList()
 	case Struct:
 		receiver.analysisStruct()
@@ -152,9 +152,17 @@ func (receiver *analysisOjb) analysisSlice() {
 
 // 解析List
 func (receiver *analysisOjb) analysisList() {
+
 	// 获取List中的数组元数
 	array := types.GetListToArray(receiver.ReflectValue)
 	if array != nil {
-		receiver.sourceMap[receiver.Name] = NewMeta(reflect.ValueOf(array), receiver.valueMeta)
+		parent := receiver.valueMeta
+
+		receiver.valueMeta = NewMeta(reflect.ValueOf(array), parent)
+		receiver.sourceMap[receiver.Name] = receiver.valueMeta
+		// 分析List中的切片
+		receiver.analysisSlice()
+
+		receiver.valueMeta = parent
 	}
 }
