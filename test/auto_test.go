@@ -11,11 +11,6 @@ import (
 	"time"
 )
 
-func (do *TaskDO) MapperInit() {
-	do.Id = do.Id + 1
-	println("已执行 TaskDO 初始化方法 MapperInit ")
-}
-
 func TestDtoToDoList(t *testing.T) {
 	arrayUser := make([]UserVO, 1)
 	lst3 := ListType(collections.NewList[CountVO](CountVO{Count: 678}))
@@ -111,7 +106,7 @@ func TestDtoToDoStruct(t *testing.T) {
 	_ = mapper.Auto(dto, &do)
 	assert.Equal(t, dto.User.Id, do.UserId)
 	assert.Equal(t, dto.User.Name, do.UserName)
-	assert.Equal(t, dto.ClientId+1, do.Client.Id)
+	assert.Equal(t, dto.ClientId, do.Client.Id)
 	assert.Equal(t, dto.ClientIp, do.Client.Ip)
 	assert.Equal(t, dto.ClientName, do.Client.Name)
 	assert.Equal(t, dto.Status, do.Status)

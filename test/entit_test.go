@@ -105,6 +105,11 @@ type TaskDO struct {
 	LastUpdateAt time.Time
 }
 
+func (do *TaskDO) MapperInit() {
+	do.Id = do.Id + 1
+	println("已执行 TaskDO 初始化方法 MapperInit ")
+}
+
 type IProduct interface {
 }
 
