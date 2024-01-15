@@ -116,15 +116,10 @@ func (receiver *assignObj) assignField() {
 // 组装List[T]
 func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
-
-	// 从List类型中得source类型：T
-	arrType := types.GetListItemArrayType(receiver.ReflectType)
-	// new []T
-	newArr := reflect.MakeSlice(arrType, 0, 0)
+	// 从List类型中得item类型：T
+	itemType := types.GetListItemArrayType(receiver.ReflectType)
 	// 组装[]T 元数据
-	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(arrType), receiver.valueMeta)
-	//receiver.ReflectValue.Set(reflect.MakeSlice(receiver.RealReflectType, 0, 0))
-	receiver.valueMeta = NewMeta(newArr, receiver.valueMeta)
+	receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType.Elem()), receiver.valueMeta)
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
 
@@ -146,7 +141,7 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 	// T
 	targetItemType := receiver.ReflectType.Elem()
 	// New []T
-	newArr := reflect.MakeSlice(receiver.ReflectType, 0, 0)
+	newArr := reflect.MakeSlice(reflect.SliceOf(targetItemType), 0, 0)
 
 	// 遍历源数组（前面已经判断这里一定是切片类型）
 	sourceSliceCount := sourceMeta.ReflectValue.Len()

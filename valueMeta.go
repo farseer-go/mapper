@@ -199,6 +199,20 @@ func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
 
 // NewReflectValue 左值为指针类型时，需要先初始化
 func (receiver *valueMeta) NewReflectValue() {
+	if !receiver.ReflectValue.IsValid() {
+		switch receiver.Type {
+		case Slice:
+			//receiver.ReflectValue = reflect.MakeSlice(receiver.RealReflectType, 0, 0)
+			receiver.ReflectValue = reflect.New(receiver.RealReflectType).Elem()
+		case Map:
+			receiver.ReflectValue = reflect.MakeMap(receiver.RealReflectType)
+		default:
+			receiver.ReflectValue = reflect.New(receiver.RealReflectType)
+		}
+		receiver.setReflectValue(reflect.Indirect(receiver.ReflectValue))
+		return
+	}
+
 	if types.IsNil(receiver.ReflectValue) {
 		switch receiver.Type {
 		case Slice:
@@ -208,7 +222,6 @@ func (receiver *valueMeta) NewReflectValue() {
 		default:
 			receiver.ReflectValue.Set(reflect.New(receiver.RealReflectType))
 		}
-
 		receiver.setReflectValue(reflect.Indirect(receiver.ReflectValue))
 	}
 }
