@@ -22,9 +22,10 @@ func TestSingle(t *testing.T) {
 	}
 
 	doSingle := mapper.Single[TaskDO](dto)
-	doSingle2 := mapper.Single[TaskDTO](doSingle)
-	assert.Equal(t, dto.Id+1, doSingle.Id)
+	assert.Equal(t, dto.Id, doSingle.Id)
 	assert.Equal(t, dto.ClientId, doSingle.Client.Id)
+
+	doSingle2 := mapper.Single[TaskDTO](doSingle)
 	assert.Equal(t, doSingle2.Id, doSingle.Id)
 	assert.Equal(t, doSingle2.ClientId, doSingle.Client.Id)
 }

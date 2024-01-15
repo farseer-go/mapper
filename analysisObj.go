@@ -49,10 +49,8 @@ func (receiver *analysisOjb) analysisStruct() {
 func (receiver *analysisOjb) analysisMap() {
 	parent := receiver.valueMeta
 	keyIsGoBasicType := types.IsGoBasicType(receiver.ReflectValue.Type().Key())
-	// 存第一层，没有意义。显示太臃肿
-	if receiver.Level > 0 {
-		receiver.sourceMap[receiver.Name] = receiver.valueMeta
-	}
+
+	// 遍历map
 	miter := parent.ReflectValue.MapRange()
 	for miter.Next() {
 		mapKey := miter.Key()
@@ -66,7 +64,7 @@ func (receiver *analysisOjb) analysisMap() {
 
 		field := reflect.StructField{
 			Name:    keyName,
-			PkgPath: mapValue.Type().PkgPath(),
+			PkgPath: "",
 		}
 
 		// 先分析元数据
@@ -99,8 +97,13 @@ func (receiver *analysisOjb) analysisField() {
 		return
 	}
 
+	// 先完整的赋值（如果目标类型一致，则可以直接取出来，不用分析）
+	if receiver.valueMeta.CanInterface {
+		receiver.sourceMap[receiver.Name] = receiver.valueMeta
+	}
+
 	switch receiver.Type {
-	case GoBasicType, CustomList:
+	case GoBasicType, CustomList, Interface:
 		if receiver.valueMeta.CanInterface {
 			receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		}
@@ -130,10 +133,6 @@ func (receiver *analysisOjb) analysisField() {
 // 解析切片
 func (receiver *analysisOjb) analysisSlice() {
 	parent := receiver.valueMeta
-	// 先完整的赋值（如果目标类型一致，则可以直接取出来，不用分析）
-	if receiver.valueMeta.CanInterface {
-		receiver.sourceMap[receiver.Name] = receiver.valueMeta
-	}
 
 	for i := 0; i < parent.ReflectValue.Len(); i++ {
 		sVal := parent.ReflectValue.Index(i)

@@ -31,6 +31,35 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 	return nil
 }
 
+// 赋值结构体
+func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
+	// 目标是否为指针
+	// 指针类型，只有在源值存在的情况下，才赋值。否则跳过
+	if sourceMeta != nil {
+		// 如果是指针，且值为nil时。receiver.ReflectType得到的是指针类型。
+		// 所以这里必须使用去指针的原始类型：receiver.RealReflectType
+		// 结构内字段转换 赋值。（目标字段是指针结构体，需要先初始化）
+		receiver.NewReflectValue()
+	}
+
+	// 在这种情况，只能初始化目标的指针结构体了，否则遍历时会异常
+	if sourceMeta == nil && receiver.valueMeta.IsAddr && receiver.valueMeta.IsNil {
+		receiver.NewReflectValue()
+	}
+
+	parent := receiver.valueMeta
+	for i := 0; i < parent.ReflectValue.NumField(); i++ {
+		numFieldValue := parent.ReflectValue.Field(i)
+		numFieldType := parent.RealReflectType.Field(i)
+
+		// 先分析元数据
+		receiver.valueMeta = newStructField(numFieldValue, numFieldType, parent)
+		receiver.assignField()
+	}
+	receiver.valueMeta = parent
+	receiver.Addr()
+}
+
 func (receiver *assignObj) assignField() {
 	// 忽略未导出的字段、忽略字段
 	if !receiver.IsExported || receiver.IsIgnore {
@@ -41,7 +70,27 @@ func (receiver *assignObj) assignField() {
 		return
 	}
 
-	if sourceValue == nil && (receiver.Type != Struct && receiver.Type != Map && receiver.Type != Dic) {
+	// 源值为nil，且不是结构、字典时，不需要继续往下走。没有意义
+	// 结构体跳过，因为需要支持：Client.Id = ClientId 这种格式 && receiver.Type != Struct
+	if sourceValue == nil && !receiver.IsAnonymous { //  && (receiver.Type != Struct && receiver.Type != Map && receiver.Type != Dic)
+		have := false
+		for k, _ := range receiver.sourceMap {
+			if strings.Contains(k, receiver.Name) {
+				have = true
+				break
+			}
+		}
+		if !have {
+			return
+		}
+	}
+
+	// 类型完全相等时，直接赋值
+	if sourceValue != nil && receiver.Type == sourceValue.Type && receiver.ReflectTypeString == sourceValue.ReflectTypeString {
+		// 左值是指针类型，且为nil，需要先初始化
+		receiver.NewReflectValue()
+		receiver.ReflectValue.Set(sourceValue.ReflectValue)
+		receiver.Addr()
 		return
 	}
 
@@ -60,7 +109,7 @@ func (receiver *assignObj) assignField() {
 	case PageList:
 	case CustomList:
 	case ArrayType:
-	case GoBasicType:
+	case GoBasicType, Interface:
 		val := parse.ConvertValue(sourceValue.ValueAny, receiver.ReflectType)
 		receiver.ReflectValue.Set(val)
 	case Struct:
@@ -101,102 +150,67 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 // 数组设置值
 func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
-
 	// T
 	targetItemType := receiver.ReflectType.Elem()
-
 	// New []T
 	newArr := reflect.MakeSlice(receiver.ReflectType, 0, 0)
 
 	// 遍历源数组（前面已经判断这里一定是切片类型）
-	for i := 0; i < sourceMeta.ReflectValue.Len(); i++ {
+	sourceSliceCount := sourceMeta.ReflectValue.Len()
+	for i := 0; i < sourceSliceCount; i++ {
 		// 获取数组内的元素
 		sourceItemValue := sourceMeta.ReflectValue.Index(i)
-		sourceItemMeta := NewMeta(sourceItemValue, sourceMeta)
 
 		// item类型一致，直接赋值
-		if targetItemType.String() == sourceItemMeta.ReflectType.String() {
-			receiver.ReflectValue = reflect.Append(receiver.ReflectValue, sourceItemValue)
+		if targetItemType.String() == sourceItemValue.Type().String() {
+			parent.ReflectValue = reflect.Append(parent.ReflectValue, sourceItemValue)
 			continue
 		}
 
-		switch receiver.Type {
-		case GoBasicType:
-			val := parse.ConvertValue(sourceItemMeta.ValueAny, targetItemType)
-			receiver.ReflectValue = reflect.Append(receiver.ReflectValue, val)
-		default:
-			panic("未知类型：" + receiver.ReflectType.String())
+		// 转成切片的索引字段
+		field := reflect.StructField{
+			Name: parse.ToString(i),
 		}
+		receiver.valueMeta = newStructField(reflect.New(targetItemType).Elem(), field, parent)
+		receiver.assignField()
+		newArr = reflect.Append(newArr, receiver.ReflectValue)
+		continue
 	}
+
 	receiver.valueMeta = parent
 
-	// 赋值
-	receiver.ReflectValue.Set(newArr)
-}
-
-// 集合中的Item赋值
-func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
-	// 目标是否为指针
-	if receiver.IsNil {
-		// 判断源值是否为nil
-		sourceHaveVal := false
-		for k, _ := range receiver.sourceMap {
-			if strings.HasPrefix(k, receiver.Name) {
-				sourceHaveVal = true
-				break
-			}
-		}
-		// 指针类型，只有在源值存在的情况下，才赋值。否则跳过
-		if !sourceHaveVal {
-			return
-		}
-		// 如果是指针，且值为nil时。receiver.ReflectType得到的是指针类型。
-		// 所以这里必须使用去指针的原始类型：receiver.RealReflectType
-		// 结构内字段转换 赋值。（目标字段是指针结构体，需要先初始化）
-		receiver.ReflectValue.Set(reflect.New(receiver.RealReflectType))
-		receiver.ReflectValue = receiver.ReflectValue.Elem()
-	}
-
-	parent := receiver.valueMeta
-	for i := 0; i < parent.ReflectValue.NumField(); i++ {
-		numFieldValue := parent.ReflectValue.Field(i)
-		numFieldType := parent.RealReflectType.Field(i)
-
-		// 先分析元数据
-		receiver.valueMeta = newStructField(numFieldValue, numFieldType, parent)
-		receiver.assignField()
+	// 有值，才要赋值，不然会出现没意义的实例化
+	if sourceSliceCount > 0 {
+		receiver.ReflectValue.Set(newArr)
+		receiver.Addr()
 	}
 }
 
 func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
-	// 类型完全相等时，直接赋值
+	parent := receiver.valueMeta
 	if sourceMeta != nil {
-		if sourceMeta.RealReflectType.String() == receiver.RealReflectType.String() {
-			receiver.ReflectValue.Set(sourceMeta.ReflectValue)
-			return
-		}
-	}
-
-	// 如果字段map为nil，则需要初始化
-	if receiver.ReflectValue.IsNil() {
-		receiver.ReflectValue.Set(reflect.MakeMap(receiver.ReflectType))
+		// 如果字段map为nil，则需要初始化
+		receiver.NewReflectValue()
 	}
 
 	// 遍历
 	valType := receiver.ReflectType.Elem()
-	//for k, v := range receiver.sourceMap {
-	//	if strings.HasPrefix(k, receiver.Name+"{") {
-	//		val := parse.ConvertValue(v.ReflectValue.Interface(), valType)
-	//		receiver.ReflectValue.SetMapIndex(v.MapKey, val)
-	//	}
-	//}
-	if sourceMeta != nil && sourceMeta.Type == Map {
+	if sourceMeta.Type == Map { // sourceMeta != nil &&
 		iter := sourceMeta.ReflectValue.MapRange()
 		for iter.Next() {
-			val := parse.ConvertValue(iter.Value().Interface(), valType)
-			receiver.ReflectValue.SetMapIndex(iter.Key(), val)
+			// 转成Map的索引字段
+			field := reflect.StructField{
+				Name: parse.ToString(iter.Key().Interface()),
+			}
+			receiver.valueMeta = newStructField(reflect.New(valType).Elem(), field, parent)
+			receiver.assignField()
+
+			parent.ReflectValue.SetMapIndex(iter.Key(), receiver.ReflectValue)
 		}
 	}
+
+	receiver.valueMeta = parent
+	receiver.Addr()
 }
 
 func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
@@ -244,8 +258,5 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 	}).First()
 
 	// 没有直接匹配到
-	//name := receiver.Name
-	// [\{|]Exception[\}|][\{|]Age[\}|]
-	// ExceptionAge
 	return sourceValue
 }

@@ -21,6 +21,7 @@ type valueMeta struct {
 	ValueAny           any                 // 值
 	ReflectValue       reflect.Value       // 值
 	ReflectType        reflect.Type        // 字段类型
+	ReflectTypeString  string              // 类型
 	RealReflectType    reflect.Type        // 字段去指针后的类型
 	ReflectStructField reflect.StructField // 字段类型
 	Type               FieldType           // 集合类型
@@ -29,18 +30,21 @@ type valueMeta struct {
 	IsExported         bool                // 是否为可导出类型
 	IsIgnore           bool                // 是否为忽略字段
 	CanInterface       bool                // 是否可以转成Any类型
+	IsAddr             bool                // 原类型是否带指针
 	Level              int                 // 当前解析的层数（默认为第0层）
 	MapKey             reflect.Value       // map key
 }
 
 // NewMeta 得到类型的元数据
 func NewMeta(reflectValue reflect.Value, parent *valueMeta) *valueMeta {
-	if reflectValue.Kind() == reflect.Pointer && !reflectValue.IsNil() {
+	isAddr := reflectValue.Kind() == reflect.Pointer
+	if isAddr && !reflectValue.IsNil() {
 		reflectValue = reflect.Indirect(reflectValue)
 	}
 	reflectType := reflectValue.Type()
 	meta := NewMetaByType(reflectType, parent)
 	meta.setReflectValue(reflectValue)
+	meta.IsAddr = isAddr
 	return meta
 }
 
@@ -57,6 +61,7 @@ func NewMetaByType(reflectType reflect.Type, parent *valueMeta) *valueMeta {
 	meta.IsNil = true
 	meta.IsAnonymous = false
 	meta.IsExported = true
+	meta.IsAddr = reflectType.Kind() == reflect.Pointer
 
 	// 解析类型
 	meta.parseType()
@@ -121,6 +126,8 @@ func (receiver *valueMeta) parseType() {
 		receiver.ReflectValue = receiver.ReflectValue.Elem()
 		receiver.RealReflectType = receiver.ReflectValue.Type()
 	}
+
+	receiver.ReflectTypeString = receiver.RealReflectType.String()
 
 	switch receiver.RealReflectType.Kind() {
 	case reflect.Slice:
@@ -188,4 +195,28 @@ func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
 
 	// 解析类型
 	receiver.parseType()
+}
+
+// NewReflectValue 左值为指针类型时，需要先初始化
+func (receiver *valueMeta) NewReflectValue() {
+	if types.IsNil(receiver.ReflectValue) {
+		switch receiver.Type {
+		case Slice:
+			receiver.ReflectValue.Set(reflect.MakeSlice(receiver.RealReflectType, 0, 0))
+		case Map:
+			receiver.ReflectValue.Set(reflect.MakeMap(receiver.RealReflectType))
+		default:
+			receiver.ReflectValue.Set(reflect.New(receiver.RealReflectType))
+		}
+
+		receiver.setReflectValue(reflect.Indirect(receiver.ReflectValue))
+	}
+}
+
+// Addr 如果之前是指针，则赋值完后恢复回指针类型
+// 否则如果将当前字段做为其它字段的值进行赋值时，就会出现 指针 = 非指针 赋值时的异常
+func (receiver *valueMeta) Addr() {
+	if receiver.IsAddr {
+		receiver.ReflectValue = receiver.ReflectValue.Addr()
+	}
 }
