@@ -132,7 +132,6 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	receiver.ReflectValue.Set(reflect.Indirect(toList))
 }
 
-// 数组设置值
 func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
 	// T
