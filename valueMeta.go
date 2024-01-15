@@ -104,10 +104,11 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 			mt.Name = parent.Name + field.Name
 		}
 	}
-	mt.RegexPattern = mt.Name
-	mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "{", "(\\{|)")
-	mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "}", "(\\}|)")
-
+	if mt.Name != "" {
+		mt.RegexPattern = fmt.Sprintf("^%s$", mt.Name)
+		mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "{", "(\\{|)")
+		mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "}", "(\\}|)")
+	}
 	//mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "[", "(\\[|)")
 	//mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "]", "(\\]|)")
 	return mt
