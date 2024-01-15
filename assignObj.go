@@ -72,17 +72,8 @@ func (receiver *assignObj) assignField() {
 
 	// 源值为nil，且不是结构、字典时，不需要继续往下走。没有意义
 	// 结构体跳过，因为需要支持：Client.Id = ClientId 这种格式 && receiver.Type != Struct
-	if sourceValue == nil && !receiver.IsAnonymous { //  && (receiver.Type != Struct && receiver.Type != Map && receiver.Type != Dic)
-		have := false
-		for k, _ := range receiver.sourceMap {
-			if strings.Contains(k, receiver.Name) {
-				have = true
-				break
-			}
-		}
-		if !have {
-			return
-		}
+	if sourceValue == nil && !receiver.IsAnonymous && (receiver.Type != Struct || !receiver.ContainsSourceKey()) { //  && (receiver.Type != Struct && receiver.Type != Map && receiver.Type != Dic)
+		return
 	}
 
 	// 类型完全相等时，直接赋值
@@ -131,12 +122,14 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	// new []T
 	newArr := reflect.MakeSlice(arrType, 0, 0)
 	// 组装[]T 元数据
+	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(arrType), receiver.valueMeta)
+	//receiver.ReflectValue.Set(reflect.MakeSlice(receiver.RealReflectType, 0, 0))
 	receiver.valueMeta = NewMeta(newArr, receiver.valueMeta)
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
 
 	// new List[T]
-	toList := types.ListNew(receiver.ReflectType)
+	toList := types.ListNew(parent.ReflectType)
 	for i := 0; i < receiver.ReflectValue.Len(); i++ {
 		//获取数组内的元素
 		structObj := receiver.ReflectValue.Index(i)
@@ -144,7 +137,7 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	}
 
 	receiver.valueMeta = parent
-	receiver.ReflectValue.Set(toList)
+	receiver.ReflectValue.Set(reflect.Indirect(toList))
 }
 
 // 数组设置值
@@ -181,6 +174,7 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 
 	// 有值，才要赋值，不然会出现没意义的实例化
 	if sourceSliceCount > 0 {
+		receiver.NewReflectValue()
 		receiver.ReflectValue.Set(newArr)
 		receiver.Addr()
 	}
@@ -259,4 +253,14 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 
 	// 没有直接匹配到
 	return sourceValue
+}
+
+// ContainsSourceKey 因为需要支持：Client.Id = ClientId 这种格式，所以使用包含的方式来判断
+func (receiver *assignObj) ContainsSourceKey() bool {
+	for k, _ := range receiver.sourceMap {
+		if strings.Contains(k, receiver.Name) {
+			return true
+		}
+	}
+	return false
 }
