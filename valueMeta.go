@@ -201,7 +201,7 @@ func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
 func (receiver *valueMeta) NewReflectValue() {
 	if !receiver.ReflectValue.IsValid() {
 		// 只能使用reflect.New,否则会出现无法寻址的问题
-		receiver.ReflectValue = reflect.New(receiver.RealReflectType)
+		receiver.ReflectValue = reflect.New(receiver.RealReflectType).Elem()
 		//switch receiver.Type {
 		//case Slice:
 		//	// 只能使用reflect.New,否则会出现无法寻址的问题
