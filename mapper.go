@@ -56,7 +56,6 @@ func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
 	if sliceOrListOrListAnyValue.Kind() == reflect.Slice {
 		//var arr []TEntity
 		arr := Array[TEntity](sliceOrListOrListAny)
-		//_ = mapper.MapperSlice(sliceOrListOrListAny, &arr)
 		return collections.NewList[TEntity](arr...)
 	}
 
@@ -65,7 +64,6 @@ func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
 		//var arr []TEntity
 		items := types.GetListToArray(sliceOrListOrListAnyValue)
 		arr := Array[TEntity](items)
-		//_ = mapper.MapperSlice(items, &arr)
 		return collections.NewList[TEntity](arr...)
 	}
 

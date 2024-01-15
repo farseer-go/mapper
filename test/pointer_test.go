@@ -12,12 +12,21 @@ type TestPointerDO struct {
 	Exception2 *trace.ExceptionStack
 	Exception3 trace.ExceptionStack
 	Exception4 *trace.ExceptionStack
+	Exception5 *ExceptionStack
 }
 type TestPointerPO struct {
 	Exception1 *trace.ExceptionStack
 	Exception2 trace.ExceptionStack
 	Exception3 *trace.ExceptionStack
-	Exception4 *trace.ExceptionStack
+	Exception4 *ExceptionStack
+	Exception5 *trace.ExceptionStack
+}
+type ExceptionStack struct {
+	ExceptionCallFile     string // 调用者文件路径
+	ExceptionCallLine     int    // 调用者行号
+	ExceptionCallFuncName string // 调用者函数名称
+	ExceptionIsException  bool   // 是否执行异常
+	ExceptionMessage      string // 异常信息
 }
 
 func TestPointer(t *testing.T) {
@@ -65,5 +74,6 @@ func TestPointer(t *testing.T) {
 	assert.Equal(t, do.Exception3.ExceptionIsException, po.Exception3.ExceptionIsException)
 	assert.Equal(t, do.Exception3.ExceptionMessage, po.Exception3.ExceptionMessage)
 
-	assert.Equal(t, do.Exception4, po.Exception4)
+	assert.True(t, po.Exception4 == nil)
+	assert.True(t, po.Exception5 == nil)
 }

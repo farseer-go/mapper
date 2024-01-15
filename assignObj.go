@@ -260,6 +260,10 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 	// 使用正则
 	lst := collections.NewList[*valueMeta]()
 	for _, v := range receiver.sourceMap {
+		// 跳过没有设置正则的源
+		if v.RegexPattern == "" {
+			continue
+		}
 		re := regexp.MustCompile(v.RegexPattern)
 		if re.MatchString(receiver.Name) {
 			lst.Add(v)
