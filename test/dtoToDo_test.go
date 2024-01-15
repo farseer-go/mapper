@@ -100,7 +100,7 @@ func TestDtoToDo(t *testing.T) {
 	assert.Equal(t, dto.LstType.Index(0).Count, do.LstType.Index(0).Count)
 	assert.Equal(t, dto.List.Index(0).Count, do.List.Index(0).Count)
 	assert.Equal(t, dto.List2.Index(0).Count, do.List2.Index(0).Count)
-	assert.Equal(t, dto.ClientId+1, do.Client.Id)
+	assert.Equal(t, dto.ClientId, do.Client.Id)
 	assert.Equal(t, dto.ClientIp, do.Client.Ip)
 	assert.Equal(t, dto.ClientName, do.Client.Name)
 	assert.Equal(t, dto.Status, do.Status)

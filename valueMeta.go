@@ -170,7 +170,8 @@ func (receiver *valueMeta) parseType() {
 		}
 
 		// 自定义集合类型
-		if len(receiver.RealReflectType.String()) > 8 && receiver.RealReflectType.String()[len(receiver.RealReflectType.String())-8:] == "ListType" {
+		numField := receiver.RealReflectType.NumField()
+		if numField > 0 && receiver.RealReflectType.Field(0).PkgPath == "github.com/farseer-go/collections" {
 			receiver.Type = CustomList
 			return
 		}

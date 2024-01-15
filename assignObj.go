@@ -96,6 +96,7 @@ func (receiver *assignObj) assignField() {
 		receiver.assembleSlice(sourceValue)
 	case PageList:
 	case CustomList:
+		receiver.assembleCustomList(sourceValue)
 	case ArrayType:
 	case GoBasicType, Interface:
 		val := parse.ConvertValue(sourceValue.ValueAny, receiver.ReflectType)
@@ -114,9 +115,9 @@ func (receiver *assignObj) assignField() {
 func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
 	// 从List类型中得item类型：T
-	itemType := types.GetListItemArrayType(receiver.ReflectType)
+	itemType := types.GetListItemType(receiver.ReflectType)
 	// 组装[]T 元数据
-	receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType.Elem()), receiver.valueMeta)
+	receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
 
@@ -130,6 +131,33 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 
 	receiver.valueMeta = parent
 	receiver.ReflectValue.Set(reflect.Indirect(toList))
+}
+
+// 组装List[T]
+func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
+	parent := receiver.valueMeta
+	// 从List类型中得item类型：T
+	itemType := types.GetListItemType(receiver.ReflectType)
+	// 组装[]T 元数据
+	receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
+	// 赋值组装的字段
+	receiver.assembleSlice(sourceMeta)
+
+	// 得到类型：List[T]
+	lstType := reflect.ValueOf(reflect.New(parent.ReflectType).Elem().MethodByName("ToList").Call([]reflect.Value{})[0].Interface()).Type()
+	// new List[T]
+	toList := types.ListNew(lstType)
+
+	for i := 0; i < receiver.ReflectValue.Len(); i++ {
+		//获取数组内的元素
+		structObj := receiver.ReflectValue.Index(i)
+		types.ListAdd(toList, structObj.Interface())
+	}
+
+	receiver.valueMeta = parent
+	// 转换成自定义类型
+	toList = reflect.Indirect(toList).Convert(receiver.ReflectType)
+	receiver.ReflectValue.Set(toList)
 }
 
 func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
