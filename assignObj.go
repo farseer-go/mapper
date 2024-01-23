@@ -19,7 +19,7 @@ type assignObj struct {
 func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[string]*valueMeta) error {
 	// 解析父元素
 	targetVal = targetVal.Elem()
-	receiver.valueMeta = NewMeta(targetVal, nil)
+	receiver.valueMeta = newMeta(targetVal, nil)
 	receiver.sourceMap = sourceMap
 
 	if receiver.valueMeta.Type != Struct {
@@ -45,7 +45,7 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 	}
 
 	parent := receiver.valueMeta
-	for i := 0; i < parent.ReflectValue.NumField(); i++ {
+	for i := 0; i < parent.NumField; i++ {
 		numFieldValue := parent.ReflectValue.Field(i)
 		numFieldType := parent.RealReflectType.Field(i)
 
@@ -99,7 +99,7 @@ func (receiver *assignObj) assignField() {
 		receiver.assembleCustomList(sourceValue)
 	case ArrayType:
 	case GoBasicType, Interface:
-		val := parse.ConvertValue(sourceValue.ValueAny, receiver.ReflectType)
+		val := parse.ConvertValue(sourceValue.ReflectValue.Interface(), receiver.ReflectType)
 		receiver.ReflectValue.Set(val)
 	case Struct:
 		receiver.assembleStruct(sourceValue)
@@ -115,9 +115,12 @@ func (receiver *assignObj) assignField() {
 func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
 	// 从List类型中得item类型：T
-	itemType := types.GetListItemType(receiver.ReflectType)
+	//itemType := types.GetListItemType(receiver.ReflectType)
 	// 组装[]T 元数据
-	receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
+	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
+	field := reflect.StructField{Name: ""}
+	receiver.valueMeta = newStructField(reflect.New(receiver.SliceType).Elem(), field, receiver.valueMeta)
+
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
 
@@ -137,9 +140,11 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
 	// 从List类型中得item类型：T
-	itemType := types.GetListItemType(receiver.ReflectType)
+	//itemType := types.GetListItemType(receiver.ReflectType)
 	// 组装[]T 元数据
-	receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
+	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
+	field := reflect.StructField{Name: ""}
+	receiver.valueMeta = newStructField(reflect.New(receiver.SliceType).Elem(), field, receiver.valueMeta)
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
 
@@ -163,9 +168,9 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
 	// T
-	targetItemType := receiver.ReflectType.Elem()
+	targetItemType := receiver.ItemType
 	// New []T
-	newArr := reflect.MakeSlice(reflect.SliceOf(targetItemType), 0, 0)
+	newArr := reflect.MakeSlice(receiver.SliceType, 0, 0)
 
 	// 遍历源数组（前面已经判断这里一定是切片类型）
 	sourceSliceCount := sourceMeta.ReflectValue.Len()
@@ -234,7 +239,7 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	// new map[K]V
 	newMap := reflect.MakeMap(mapType)
 	// 组装map[K]V 元数据
-	receiver.valueMeta = NewMeta(newMap, receiver.valueMeta)
+	receiver.valueMeta = newMeta(newMap, receiver.valueMeta)
 	// 赋值组装的字段
 	receiver.assembleMap(sourceMeta)
 

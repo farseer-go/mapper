@@ -2,6 +2,8 @@ package mapper
 
 import (
 	"github.com/farseer-go/collections"
+	"github.com/farseer-go/fs/container"
+	"github.com/farseer-go/fs/trace"
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
@@ -10,6 +12,12 @@ import (
 // Array 数组转换
 // fromSlice=数组切片
 func Array[T any](fromSlice any) []T {
+	// 临时加入埋点
+	if container.IsRegister[trace.IManager]() {
+		traceHand := container.Resolve[trace.IManager]().TraceHand("mapper.Array")
+		defer traceHand.End(nil)
+	}
+
 	var toSlice []T
 	//获取到具体的值信息
 	sliArray := reflect.Indirect(reflect.ValueOf(fromSlice))
@@ -46,6 +54,12 @@ func ToPageList[TEntity any](pageList any) collections.PageList[TEntity] {
 
 // ToList 支持：ListAny、List[xx]、[]xx转List[yy]
 func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
+	// 临时加入埋点
+	if container.IsRegister[trace.IManager]() {
+		traceHand := container.Resolve[trace.IManager]().TraceHand("mapper.ToList")
+		defer traceHand.End(nil)
+	}
+
 	sliceOrListOrListAnyValue := reflect.ValueOf(sliceOrListOrListAny)
 	if sliceOrListOrListAnyValue.Kind() == reflect.Ptr {
 		sliceOrListOrListAnyValue = sliceOrListOrListAnyValue.Elem()

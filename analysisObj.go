@@ -8,17 +8,17 @@ import (
 	"strings"
 )
 
-type analysisOjb struct {
+type AnalysisOjb struct {
 	*valueMeta                       // 当前元数据
 	sourceMap  map[string]*valueMeta // 分析后的结果
 }
 
-func (receiver *analysisOjb) analysis(from any) {
+func (receiver *AnalysisOjb) Analysis(from any) {
 	// 定义存储map ,保存解析出来的字段和值
 	receiver.sourceMap = make(map[string]*valueMeta)
 	// 解析from元数据
 	fromValue := reflect.Indirect(reflect.ValueOf(from))
-	receiver.valueMeta = NewMeta(fromValue, nil)
+	receiver.valueMeta = newMeta(fromValue, nil)
 
 	switch receiver.Type {
 	case Map:
@@ -26,15 +26,15 @@ func (receiver *analysisOjb) analysis(from any) {
 	case Struct:
 		receiver.analysisStruct()
 	default:
-		flog.Warningf("mapper未知的类型解析：%s", receiver.ReflectType.String())
+		flog.Warningf("mapper未知的类型解析：%s", receiver.ReflectTypeString)
 	}
 }
 
 // 解析结构体
-func (receiver *analysisOjb) analysisStruct() {
+func (receiver *AnalysisOjb) analysisStruct() {
 	parent := receiver.valueMeta
 	// 结构体
-	for i := 0; i < parent.ReflectValue.NumField(); i++ {
+	for i := 0; i < parent.NumField; i++ {
 		numFieldValue := parent.ReflectValue.Field(i)
 		numFieldType := parent.RealReflectType.Field(i)
 
@@ -46,7 +46,7 @@ func (receiver *analysisOjb) analysisStruct() {
 }
 
 // 解析map
-func (receiver *analysisOjb) analysisMap() {
+func (receiver *AnalysisOjb) analysisMap() {
 	parent := receiver.valueMeta
 	keyIsGoBasicType := types.IsGoBasicType(receiver.ReflectValue.Type().Key())
 
@@ -77,7 +77,7 @@ func (receiver *analysisOjb) analysisMap() {
 }
 
 // 解析字典
-func (receiver *analysisOjb) analysisDic() {
+func (receiver *AnalysisOjb) analysisDic() {
 	// 转成map
 	m := types.GetDictionaryToMap(receiver.ReflectValue)
 	// 这里不能用receiver.valueMeta作为父级传入，而必须传receiver.valueMeta.Parent
@@ -91,16 +91,16 @@ func (receiver *analysisOjb) analysisDic() {
 }
 
 // 解析字段
-func (receiver *analysisOjb) analysisField() {
+func (receiver *AnalysisOjb) analysisField() {
 	// 不可导出类型，则退出
 	if receiver.IsNil || !receiver.IsExported || receiver.Type == Interface {
 		return
 	}
 
 	// 先完整的赋值（如果目标类型一致，则可以直接取出来，不用分析）
-	if receiver.valueMeta.CanInterface {
-		receiver.sourceMap[receiver.Name] = receiver.valueMeta
-	}
+	//if receiver.valueMeta.CanInterface {
+	receiver.sourceMap[receiver.Name] = receiver.valueMeta
+	//}
 
 	switch receiver.Type {
 	case GoBasicType, Interface:
@@ -131,7 +131,7 @@ func (receiver *analysisOjb) analysisField() {
 }
 
 // 解析切片
-func (receiver *analysisOjb) analysisSlice() {
+func (receiver *AnalysisOjb) analysisSlice() {
 	parent := receiver.valueMeta
 
 	for i := 0; i < parent.ReflectValue.Len(); i++ {
@@ -151,14 +151,14 @@ func (receiver *analysisOjb) analysisSlice() {
 }
 
 // 解析List
-func (receiver *analysisOjb) analysisList() {
+func (receiver *AnalysisOjb) analysisList() {
 
 	// 获取List中的数组元数
 	array := types.GetListToArray(receiver.ReflectValue)
 	if array != nil {
 		parent := receiver.valueMeta
 
-		receiver.valueMeta = NewMeta(reflect.ValueOf(array), parent)
+		receiver.valueMeta = newMeta(reflect.ValueOf(array), parent)
 		receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		// 分析List中的切片
 		receiver.analysisSlice()

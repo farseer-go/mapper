@@ -18,8 +18,8 @@ func Auto(from, to any) error {
 	defer execInitFunc(targetVal)
 
 	// 遍历来源对象
-	var fAnalysis analysisOjb
-	fAnalysis.analysis(from)
+	var fAnalysis AnalysisOjb
+	fAnalysis.Analysis(from)
 
 	// 赋值
 	var tAssign assignObj
