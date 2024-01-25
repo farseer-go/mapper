@@ -5,6 +5,7 @@ import (
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
+	"unsafe"
 )
 
 const (
@@ -21,8 +22,6 @@ type reflectTyp struct {
 	ItemType          reflect.Type // Item元素的Type
 	SliceType         reflect.Type // ItemType转成切片类型
 }
-
-var cacheReflectTyp = make(map[reflect.Type]*reflectTyp)
 
 // 元数据
 type valueMeta struct {
@@ -137,21 +136,16 @@ func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
 	receiver.parseType()
 }
 
+type intface struct {
+	typ   unsafe.Pointer
+	value unsafe.Pointer
+}
+
 func (receiver *valueMeta) parseType() {
 	// 取真实的类型
 	if receiver.ReflectType.Kind() == reflect.Interface && !receiver.IsNil && receiver.ReflectValue.CanInterface() {
 		receiver.RealReflectType = receiver.ReflectValue.Type()
 		receiver.ReflectType = receiver.RealReflectType
-	}
-
-	if c, exists := cacheReflectTyp[receiver.ReflectType]; exists {
-		receiver.RealReflectType = c.RealReflectType
-		receiver.ReflectTypeString = c.ReflectTypeString
-		receiver.Type = c.Type
-		receiver.NumField = c.NumField
-		receiver.ItemType = c.ItemType
-		receiver.SliceType = c.SliceType
-		return
 	}
 
 	// 指针类型，需要取出指针指向的类型
@@ -162,11 +156,6 @@ func (receiver *valueMeta) parseType() {
 	}
 
 	receiver.ReflectTypeString = receiver.RealReflectType.String()
-
-	cacheReflectTyp[receiver.ReflectType] = &reflectTyp{
-		RealReflectType:   receiver.RealReflectType,
-		ReflectTypeString: receiver.ReflectTypeString,
-	}
 
 	switch receiver.RealReflectType.Kind() {
 	case reflect.Slice:
@@ -226,14 +215,10 @@ func (receiver *valueMeta) parseType() {
 		if types.IsStruct(receiver.RealReflectType) {
 			receiver.Type = Struct
 			receiver.NumField = receiver.RealReflectType.NumField()
-			cacheReflectTyp[receiver.ReflectType].NumField = receiver.NumField
 			break
 		}
 		receiver.Type = Unknown
 	}
-	cacheReflectTyp[receiver.ReflectType].Type = receiver.Type
-	cacheReflectTyp[receiver.ReflectType].ItemType = receiver.ItemType
-	cacheReflectTyp[receiver.ReflectType].SliceType = receiver.SliceType
 }
 
 // NewReflectValue 左值为指针类型时，需要先初始化
