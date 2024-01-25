@@ -15,8 +15,9 @@ import (
 // 第1次优化：1115 ms 加入缓存
 // 第2次优化：1072 ms 移除ValueAny
 // 第3次优化：1038 ms 缓存NumField
-// 第4次优化：1038 ms 缓存ItemType
+// 第4次优化：1038 ms 缓存ItemType	1075858606 ns/op	688635696 B/op	12366560 allocs/op
 func BenchmarkMapperToList(b *testing.B) {
+	b.ReportAllocs()
 	lst := collections.NewList[UserVO]()
 	for i := 0; i < 10000; i++ {
 		lst.Add(UserVO{
