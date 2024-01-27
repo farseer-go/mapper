@@ -23,7 +23,7 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 	receiver.sourceMap = sourceMap
 
 	if receiver.valueMeta.Type != Struct {
-		return fmt.Errorf("mapper赋值类型，必须是Struct：%s", receiver.valueMeta.ReflectType.String())
+		return fmt.Errorf("mapper赋值类型，必须是Struct：%s", receiver.valueMeta.ReflectTypeString)
 	}
 
 	receiver.assembleStruct(nil)
@@ -99,7 +99,7 @@ func (receiver *assignObj) assignField() {
 		receiver.assembleCustomList(sourceValue)
 	case ArrayType:
 	case GoBasicType, Interface:
-		val := parse.ConvertValue(sourceValue.ReflectValue.Interface(), receiver.ReflectType)
+		val := parse.ConvertValue(sourceValue.ReflectValue.Interface(), receiver.RealReflectType)
 		receiver.ReflectValue.Set(val)
 	case Struct:
 		receiver.assembleStruct(sourceValue)
@@ -125,7 +125,7 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	receiver.assembleSlice(sourceMeta)
 
 	// new List[T]
-	toList := types.ListNew(parent.ReflectType)
+	toList := types.ListNew(parent.RealReflectType)
 	for i := 0; i < receiver.ReflectValue.Len(); i++ {
 		//获取数组内的元素
 		structObj := receiver.ReflectValue.Index(i)
@@ -149,7 +149,7 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 	receiver.assembleSlice(sourceMeta)
 
 	// 得到类型：List[T]
-	lstType := reflect.ValueOf(reflect.New(parent.ReflectType).Elem().MethodByName("ToList").Call([]reflect.Value{})[0].Interface()).Type()
+	lstType := reflect.ValueOf(reflect.New(parent.RealReflectType).Elem().MethodByName("ToList").Call([]reflect.Value{})[0].Interface()).Type()
 	// new List[T]
 	toList := types.ListNew(lstType)
 
@@ -161,7 +161,7 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 
 	receiver.valueMeta = parent
 	// 转换成自定义类型
-	toList = reflect.Indirect(toList).Convert(receiver.ReflectType)
+	toList = reflect.Indirect(toList).Convert(receiver.RealReflectType)
 	receiver.ReflectValue.Set(toList)
 }
 
@@ -212,7 +212,7 @@ func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 	}
 
 	// 遍历
-	valType := receiver.ReflectType.Elem()
+	valType := receiver.RealReflectType.Elem()
 	if sourceMeta.Type == Map { // sourceMeta != nil &&
 		iter := sourceMeta.ReflectValue.MapRange()
 		for iter.Next() {
@@ -235,7 +235,7 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
 
 	// 从Dictionary类型中得source类型：map[K]V
-	mapType := types.GetDictionaryMapType(receiver.ReflectType)
+	mapType := types.GetDictionaryMapType(receiver.RealReflectType)
 	// new map[K]V
 	newMap := reflect.MakeMap(mapType)
 	// 组装map[K]V 元数据
@@ -244,7 +244,7 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	receiver.assembleMap(sourceMeta)
 
 	// new Dictionary[K,V]
-	newDictionary := types.DictionaryNew(parent.ReflectType)
+	newDictionary := types.DictionaryNew(parent.RealReflectType)
 	types.DictionaryAddMap(newDictionary, receiver.ReflectValue.Interface())
 
 	receiver.valueMeta = parent

@@ -30,25 +30,26 @@ type valueMeta struct {
 	Name               string              // 字段名称
 	RegexPattern       string              // 字段名称匹配规则
 	ReflectValue       reflect.Value       // 值
-	ReflectType        reflect.Type        // 字段类型
-	ReflectTypeString  string              // 类型
 	RealReflectType    reflect.Type        // 字段去指针后的类型
 	ReflectStructField reflect.StructField // 字段类型
-	Type               FieldType           // 集合类型
 	IsNil              bool                // 是否为nil
 	IsAnonymous        bool                // 是否为内嵌类型
 	IsExported         bool                // 是否为可导出类型
 	IsIgnore           bool                // 是否为忽略字段
+	Level              int                 // 当前解析的层数（默认为第0层）
+	MapKey             reflect.Value       // map key
 
 	//ValueAny           any                 // 值
 	//CanInterface       bool                // 是否可以转成Any类型
 
-	IsAddr    bool          // 原类型是否带指针
-	Level     int           // 当前解析的层数（默认为第0层）
-	MapKey    reflect.Value // map key
-	NumField  int           // 结构体的字段数量
-	ItemType  reflect.Type  // Item元素的Type
-	SliceType reflect.Type  // ItemType转成切片类型
+	// 通过fastReflect可以得到
+	IsAddr            bool         // 原类型是否带指针
+	NumField          int          // 结构体的字段数量
+	ItemType          reflect.Type // Item元素的Type
+	SliceType         reflect.Type // ItemType转成切片类型
+	Type              FieldType    // 集合类型
+	ReflectType       reflect.Type // 字段类型
+	ReflectTypeString string       // 类型
 }
 
 // newMeta 得到类型的元数据
