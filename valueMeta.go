@@ -2,10 +2,10 @@ package mapper
 
 import (
 	"fmt"
+	"github.com/farseer-go/fs/fastReflect"
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
-	"unsafe"
 )
 
 const (
@@ -14,81 +14,45 @@ const (
 	collectionsTypeString = "github.com/farseer-go/collections"
 )
 
-type reflectTyp struct {
-	RealReflectType   reflect.Type // 字段去指针后的类型
-	ReflectTypeString string       // 类型
-	Type              FieldType    // 集合类型
-	NumField          int          // 结构体的字段数量
-	ItemType          reflect.Type // Item元素的Type
-	SliceType         reflect.Type // ItemType转成切片类型
-}
-
 // 元数据
 type valueMeta struct {
+	fastReflect.PointerMeta
 	Parent             *valueMeta          // 上级元数据
 	ParentName         string              // 上级字段名称
 	Name               string              // 字段名称
 	RegexPattern       string              // 字段名称匹配规则
 	ReflectValue       reflect.Value       // 值
-	RealReflectType    reflect.Type        // 字段去指针后的类型
 	ReflectStructField reflect.StructField // 字段类型
 	IsNil              bool                // 是否为nil
 	IsAnonymous        bool                // 是否为内嵌类型
-	IsExported         bool                // 是否为可导出类型
 	IsIgnore           bool                // 是否为忽略字段
 	Level              int                 // 当前解析的层数（默认为第0层）
 	MapKey             reflect.Value       // map key
-
 	//ValueAny           any                 // 值
 	//CanInterface       bool                // 是否可以转成Any类型
-
-	// 通过fastReflect可以得到
-	IsAddr            bool         // 原类型是否带指针
-	NumField          int          // 结构体的字段数量
-	ItemType          reflect.Type // Item元素的Type
-	SliceType         reflect.Type // ItemType转成切片类型
-	Type              FieldType    // 集合类型
-	ReflectType       reflect.Type // 字段类型
-	ReflectTypeString string       // 类型
 }
 
 // newMeta 得到类型的元数据
-func newMeta(reflectValue reflect.Value, parent *valueMeta) *valueMeta {
-	isAddr := reflectValue.Kind() == reflect.Pointer
-	if isAddr && !reflectValue.IsNil() {
-		reflectValue = reflectValue.Elem()
-	}
-	reflectType := reflectValue.Type()
-	meta := newMetaByType(reflectType, parent)
-	meta.setReflectValue(reflectValue)
-	meta.IsAddr = isAddr
-	return meta
-}
-
-// newMetaByType 得到类型的元数据
-func newMetaByType(reflectType reflect.Type, parent *valueMeta) *valueMeta {
+func newMetaVal(value reflect.Value, parent *valueMeta) *valueMeta {
+	pointerMeta := fastReflect.PointerOf(value.Interface())
 	meta := &valueMeta{}
 	if parent != nil {
 		meta.Parent = parent
 		meta.ParentName = parent.Name
 		meta.Level = parent.Level + 1
-		meta.Name = parent.Name + reflectType.Name()
+		meta.Name = parent.Name + pointerMeta.Name
 	}
-	meta.ReflectType = reflectType
+	meta.PointerMeta = pointerMeta
 	meta.IsNil = true
 	meta.IsAnonymous = false
-	meta.IsExported = true
-
-	// 解析类型
-	//meta.parseType()
+	meta.setReflectValue(value)
 	return meta
 }
 
 // newStructField 创建子元数据
 func newStructField(value reflect.Value, field reflect.StructField, parent *valueMeta) *valueMeta {
-	mt := newMeta(value, parent)
+	mt := newMetaVal(value, parent)
 	mt.ReflectStructField = field
-	mt.IsExported = field.IsExported()
 	mt.IsAnonymous = field.Anonymous
 
 	// 定义的标签
@@ -101,9 +65,9 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 	}
 
 	switch parent.Type {
-	case Slice:
+	case fastReflect.Slice:
 		mt.Name = parent.Name + fmt.Sprintf("[%s]", field.Name)
-	case Map, Dic:
+	case fastReflect.Map, fastReflect.Dic:
 		mt.Name = parent.Name + fmt.Sprintf("{%s}", field.Name)
 	default:
 		// 内嵌字段类型的Name为类型名称，这里用标记代替
@@ -124,24 +88,54 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 }
 
 func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
+	if reflectValue.Kind() == reflect.Pointer && !reflectValue.IsNil() {
+		reflectValue = reflectValue.Elem()
+	}
+
 	receiver.ReflectValue = reflectValue
 	//receiver.CanInterface = receiver.ReflectValue.CanInterface()
 	receiver.IsNil = types.IsNil(receiver.ReflectValue)
 
 	// 取真实的类型
-	if receiver.ReflectType.Kind() == reflect.Interface && !receiver.IsNil { // && receiver.CanInterface
+	if receiver.ReflectValue.Kind() == reflect.Interface && !receiver.IsNil { // && receiver.CanInterface
 		receiver.ReflectValue = receiver.ReflectValue.Elem()
 	}
 
 	// 解析类型
-	receiver.parseType()
+	//receiver.parseType()
 }
 
-type intface struct {
-	typ   unsafe.Pointer
-	value unsafe.Pointer
+// NewReflectValue 左值为指针类型时，需要先初始化
+func (receiver *valueMeta) NewReflectValue() {
+	if !receiver.ReflectValue.IsValid() {
+		// 只能使用reflect.New,否则会出现无法寻址的问题
+		receiver.ReflectValue = reflect.New(receiver.ReflectType).Elem()
+		receiver.setReflectValue(receiver.ReflectValue)
+		return
+	}
+
+	if types.IsNil(receiver.ReflectValue) {
+		switch receiver.Type {
+		case fastReflect.Slice:
+			receiver.ReflectValue.Set(reflect.MakeSlice(receiver.ReflectType, 0, 0))
+		case fastReflect.Map:
+			receiver.ReflectValue.Set(reflect.MakeMap(receiver.ReflectType))
+		default:
+			receiver.ReflectValue.Set(reflect.New(receiver.ReflectType))
+		}
+		receiver.setReflectValue(reflect.Indirect(receiver.ReflectValue))
+	}
 }
 
+// Addr 如果之前是指针，则赋值完后恢复回指针类型
+// 否则如果将当前字段做为其它字段的值进行赋值时，就会出现 指针 = 非指针 赋值时的异常
+func (receiver *valueMeta) Addr() {
+	if receiver.IsAddr {
+		receiver.ReflectValue = receiver.ReflectValue.Addr()
+	}
+}
+
+/*
 func (receiver *valueMeta) parseType() {
 	// 取真实的类型
 	if receiver.ReflectType.Kind() == reflect.Interface && !receiver.IsNil && receiver.ReflectValue.CanInterface() {
@@ -160,94 +154,83 @@ func (receiver *valueMeta) parseType() {
 
 	switch receiver.RealReflectType.Kind() {
 	case reflect.Slice:
-		receiver.Type = Slice
-		receiver.ItemType = receiver.RealReflectType.Elem()
-		receiver.SliceType = reflect.SliceOf(receiver.ItemType)
+		receiver.Type = fastReflect.Slice
+		receiver.ItemMeta.ReflectType = receiver.RealReflectType.Elem()
+		receiver.SliceType = reflect.SliceOf(receiver.ItemMeta.ReflectType)
 	case reflect.Array:
-		receiver.Type = ArrayType
-		receiver.ItemType = receiver.RealReflectType.Elem()
+		receiver.Type = fastReflect.Array
+		receiver.ItemMeta.ReflectType = receiver.RealReflectType.Elem()
 	case reflect.Map:
-		receiver.Type = Map
+		receiver.Type = fastReflect.Map
 	case reflect.Chan:
-		receiver.Type = Chan
+		receiver.Type = fastReflect.Chan
 	case reflect.Func:
-		receiver.Type = Func
+		receiver.Type = fastReflect.Func
 	case reflect.Invalid:
-		receiver.Type = Invalid
+		receiver.Type = fastReflect.Invalid
 	case reflect.Interface:
-		receiver.Type = Interface
+		receiver.Type = fastReflect.Interface
 	default:
 		// 基础类型
 		if types.IsGoBasicType(receiver.RealReflectType) {
-			receiver.Type = GoBasicType
+			receiver.Type = fastReflect.GoBasicType
 			break
 		}
 
 		// List类型
 		if _, isTrue := types.IsListByType(receiver.RealReflectType); isTrue {
-			receiver.Type = List
-			receiver.ItemType = types.GetListItemType(receiver.ReflectType)
-			receiver.SliceType = reflect.SliceOf(receiver.ItemType)
+			receiver.Type = fastReflect.List
+			receiver.ItemMeta.ReflectType = types.GetListItemType(receiver.ReflectType)
+			receiver.SliceType = reflect.SliceOf(receiver.ItemMeta.ReflectType)
 			break
 		}
 
 		// Dictionary类型
 		if isTrue := types.IsDictionaryByType(receiver.RealReflectType); isTrue {
-			receiver.Type = Dic
+			receiver.Type = fastReflect.Dic
 			break
 		}
 
 		// PageList类型
 		if isTrue := types.IsPageListByType(receiver.RealReflectType); isTrue {
-			receiver.Type = PageList
+			receiver.Type = fastReflect.PageList
 			break
 		}
 
 		// 自定义集合类型
 		numField := receiver.RealReflectType.NumField()
 		if numField > 0 && receiver.RealReflectType.Field(0).PkgPath == collectionsTypeString {
-			receiver.Type = CustomList
-			receiver.ItemType = types.GetListItemType(receiver.ReflectType)
-			receiver.SliceType = reflect.SliceOf(receiver.ItemType)
+			receiver.Type = fastReflect.CustomList
+			receiver.ItemMeta.ReflectType = types.GetListItemType(receiver.ReflectType)
+			receiver.SliceType = reflect.SliceOf(receiver.ItemMeta.ReflectType)
 			break
 		}
 
 		// 结构体
 		if types.IsStruct(receiver.RealReflectType) {
-			receiver.Type = Struct
+			receiver.Type = fastReflect.Struct
 			receiver.NumField = receiver.RealReflectType.NumField()
 			break
 		}
-		receiver.Type = Unknown
+		receiver.Type = fastReflect.Unknown
 	}
 }
+*/
 
-// NewReflectValue 左值为指针类型时，需要先初始化
-func (receiver *valueMeta) NewReflectValue() {
-	if !receiver.ReflectValue.IsValid() {
-		// 只能使用reflect.New,否则会出现无法寻址的问题
-		receiver.ReflectValue = reflect.New(receiver.RealReflectType).Elem()
-		receiver.setReflectValue(receiver.ReflectValue)
-		return
-	}
-
-	if types.IsNil(receiver.ReflectValue) {
-		switch receiver.Type {
-		case Slice:
-			receiver.ReflectValue.Set(reflect.MakeSlice(receiver.RealReflectType, 0, 0))
-		case Map:
-			receiver.ReflectValue.Set(reflect.MakeMap(receiver.RealReflectType))
-		default:
-			receiver.ReflectValue.Set(reflect.New(receiver.RealReflectType))
-		}
-		receiver.setReflectValue(reflect.Indirect(receiver.ReflectValue))
-	}
-}
-
-// Addr 如果之前是指针，则赋值完后恢复回指针类型
-// 否则如果将当前字段做为其它字段的值进行赋值时，就会出现 指针 = 非指针 赋值时的异常
-func (receiver *valueMeta) Addr() {
-	if receiver.IsAddr {
-		receiver.ReflectValue = receiver.ReflectValue.Addr()
-	}
-}
+//// newMetaByType 得到类型的元数据
+//func newMetaByType(pointerMeta fastReflect.PointerMeta, parent *valueMeta) *valueMeta {
+//	meta := &valueMeta{}
+//	if parent != nil {
+//		meta.Parent = parent
+//		meta.ParentName = parent.Name
+//		meta.Level = parent.Level + 1
+//		meta.Name = parent.Name + pointerMeta.Name
+//	}
+//	meta.PointerMeta = pointerMeta
+//	meta.IsNil = true
+//	meta.IsAnonymous = false
+//	meta.IsExported = true
+//
+//	// 解析类型
+//	return meta
+//}

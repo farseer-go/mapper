@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"github.com/farseer-go/fs/fastReflect"
 	"github.com/farseer-go/fs/flog"
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
@@ -17,13 +18,13 @@ func (receiver *AnalysisOjb) Analysis(from any) {
 	// 定义存储map ,保存解析出来的字段和值
 	receiver.sourceMap = make(map[string]*valueMeta)
 	// 解析from元数据
-	fromValue := reflect.Indirect(reflect.ValueOf(from))
-	receiver.valueMeta = newMeta(fromValue, nil)
+	fromValue := reflect.ValueOf(from)
+	receiver.valueMeta = newMetaVal(fromValue, nil)
 
 	switch receiver.Type {
-	case Map:
+	case fastReflect.Map:
 		receiver.analysisMap()
-	case Struct:
+	case fastReflect.Struct:
 		receiver.analysisStruct()
 	default:
 		flog.Warningf("mapper未知的类型解析：%s", receiver.ReflectTypeString)
@@ -35,12 +36,13 @@ func (receiver *AnalysisOjb) analysisStruct() {
 	parent := receiver.valueMeta
 	// 结构体
 	for i := 0; i < parent.NumField; i++ {
-		numFieldValue := parent.ReflectValue.Field(i)
-		numFieldType := parent.RealReflectType.Field(i)
-
-		// 先分析元数据
-		receiver.valueMeta = newStructField(numFieldValue, numFieldType, parent)
-		receiver.analysisField()
+		if parent.StructField[i].IsExported() {
+			// todo 这里的性能要做测试
+			numFieldValue := parent.ReflectValue.Field(i)
+			// 先分析元数据
+			receiver.valueMeta = newStructField(numFieldValue, parent.StructField[i], parent)
+			receiver.analysisField()
+		}
 	}
 	receiver.valueMeta = parent
 }
@@ -86,14 +88,14 @@ func (receiver *AnalysisOjb) analysisDic() {
 	// 解析map
 	receiver.analysisMap()
 	// Dic统一将转成map类型，方便赋值时直接取map，而不用区分类型
-	receiver.Type = Map
+	receiver.Type = fastReflect.Map
 	receiver.sourceMap[receiver.Name] = receiver.valueMeta
 }
 
 // 解析字段
 func (receiver *AnalysisOjb) analysisField() {
 	// 不可导出类型，则退出
-	if receiver.IsNil || !receiver.IsExported || receiver.Type == Interface {
+	if receiver.IsNil || receiver.Type == fastReflect.Interface {
 		return
 	}
 
@@ -103,19 +105,19 @@ func (receiver *AnalysisOjb) analysisField() {
 	//}
 
 	switch receiver.Type {
-	case GoBasicType, Interface:
+	case fastReflect.GoBasicType, fastReflect.Interface:
 	// 不需要处理
-	case Slice:
+	case fastReflect.Slice:
 		receiver.analysisSlice()
-	case List:
+	case fastReflect.List:
 		receiver.analysisList()
-	case CustomList:
+	case fastReflect.CustomList:
 		receiver.analysisList()
-	case Struct:
+	case fastReflect.Struct:
 		receiver.analysisStruct()
-	case Dic:
+	case fastReflect.Dic:
 		receiver.analysisDic()
-	case Map:
+	case fastReflect.Map:
 		// 解析map
 		receiver.analysisMap()
 		receiver.sourceMap[receiver.Name] = receiver.valueMeta
@@ -152,13 +154,12 @@ func (receiver *AnalysisOjb) analysisSlice() {
 
 // 解析List
 func (receiver *AnalysisOjb) analysisList() {
-
 	// 获取List中的数组元数
-	array := types.GetListToArray(receiver.ReflectValue)
-	if array != nil {
+	array := types.GetListToArrayValue(receiver.ReflectValue)
+	if !types.IsNil(array) {
 		parent := receiver.valueMeta
 
-		receiver.valueMeta = newMeta(reflect.ValueOf(array), parent)
+		receiver.valueMeta = newMetaVal(array, parent)
 		receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		// 分析List中的切片
 		receiver.analysisSlice()
