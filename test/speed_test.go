@@ -17,8 +17,8 @@ import (
 // 第3次优化：1038 ms 缓存NumField
 // 第4次优化：1038 ms 缓存ItemType	1075858606 ns/op	688635696 B/op	12366560 allocs/op
 // 第5次优化：986 ms BenchmarkMapperToList-12    	       1	1018944959 ns/op	581959224 B/op	11226437 allocs/op
+// 第6次优化：825 ms BenchmarkMapperToList-12    	       2	 827262450 ns/op	544626832 B/op	 9735507 allocs/op
 func BenchmarkMapperToList(b *testing.B) {
-	b.ReportAllocs()
 	lst := collections.NewList[UserVO]()
 	for i := 0; i < 10000; i++ {
 		lst.Add(UserVO{
@@ -43,8 +43,14 @@ func BenchmarkMapperToList(b *testing.B) {
 		})
 	}
 
+	b.ReportAllocs()
+	b.ResetTimer()
+	//arr := lst.ToArray()
 	for i := 0; i < b.N; i++ {
 		sw := stopwatch.StartNew()
+		//for j := 0; j < 10000; j++ {
+		//	_ = mapper.Auto(arr[j], &UserVO2{})
+		//}
 		mapper.ToList[UserVO2](lst)
 		fmt.Println(sw.GetMillisecondsText())
 	}

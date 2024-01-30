@@ -19,8 +19,7 @@ func (receiver *AnalysisOjb) Analysis(from any) {
 	receiver.sourceMap = make(map[string]*valueMeta)
 	// 解析from元数据
 	fromValue := reflect.ValueOf(from)
-	receiver.valueMeta = newMetaVal(fromValue, nil)
-
+	receiver.valueMeta = newMetaVal(fromValue)
 	switch receiver.Type {
 	case fastReflect.Map:
 		receiver.analysisMap()
@@ -140,8 +139,7 @@ func (receiver *AnalysisOjb) analysisSlice() {
 		sVal := parent.ReflectValue.Index(i)
 
 		field := reflect.StructField{
-			Name:    parse.ToString(i),
-			PkgPath: "",
+			Name: parse.ToString(i),
 		}
 
 		// 先分析元数据
@@ -159,7 +157,8 @@ func (receiver *AnalysisOjb) analysisList() {
 	if !types.IsNil(array) {
 		parent := receiver.valueMeta
 
-		receiver.valueMeta = newMetaVal(array, parent)
+		//receiver.valueMeta = newMetaVal(array, receiver.valueMeta)
+		receiver.valueMeta = newStructField(array, reflect.StructField{}, parent)
 		receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		// 分析List中的切片
 		receiver.analysisSlice()

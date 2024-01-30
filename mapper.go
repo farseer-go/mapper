@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/container"
+	"github.com/farseer-go/fs/fastReflect"
 	"github.com/farseer-go/fs/trace"
 	"github.com/farseer-go/fs/types"
 	"reflect"
@@ -60,38 +61,37 @@ func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
 		defer traceHand.End(nil)
 	}
 
-	sliceOrListOrListAnyValue := reflect.ValueOf(sliceOrListOrListAny)
-	if sliceOrListOrListAnyValue.Kind() == reflect.Ptr {
-		sliceOrListOrListAnyValue = sliceOrListOrListAnyValue.Elem()
-	}
-	sliceOrListOrListAnyType := sliceOrListOrListAnyValue.Type()
-
-	// 切片类型
-	if sliceOrListOrListAnyValue.Kind() == reflect.Slice {
+	pointerMeta := fastReflect.PointerOf(sliceOrListOrListAny)
+	switch pointerMeta.Type {
+	case fastReflect.Slice:
 		//var arr []TEntity
 		arr := Array[TEntity](sliceOrListOrListAny)
 		return collections.NewList[TEntity](arr...)
-	}
+	case fastReflect.List:
+		sliceOrListOrListAnyValue := reflect.ValueOf(sliceOrListOrListAny)
+		if sliceOrListOrListAnyValue.Kind() == reflect.Ptr {
+			sliceOrListOrListAnyValue = sliceOrListOrListAnyValue.Elem()
+		}
 
-	// List类型、ListAny类型
-	if strings.HasPrefix(sliceOrListOrListAnyType.String(), "collections.List[") || strings.HasPrefix(sliceOrListOrListAnyType.String(), "collections.ListAny") {
 		//var arr []TEntity
 		items := types.GetListToArray(sliceOrListOrListAnyValue)
 		arr := Array[TEntity](items)
 		return collections.NewList[TEntity](arr...)
+	default:
+		//sliceOrListOrListAnyType := sliceOrListOrListAnyValue.Type()
+		//toArrayMethod := sliceOrListOrListAnyValue.MethodByName("ToArray")
+		//if !toArrayMethod.IsNil() {
+		//	//var arr []TEntity
+		//	arrValue := toArrayMethod.Call(nil)[0]
+		//	var items []TEntity
+		//	for i := 0; i < arrValue.Len(); i++ {
+		//		item := Single[TEntity](arrValue.Index(i).Interface())
+		//		items = append(items, item)
+		//	}
+		//	return collections.NewList[TEntity](items...)
+		//}
 	}
 
-	toArrayMethod := sliceOrListOrListAnyValue.MethodByName("ToArray")
-	if !toArrayMethod.IsNil() {
-		//var arr []TEntity
-		arrValue := toArrayMethod.Call(nil)[0]
-		var items []TEntity
-		for i := 0; i < arrValue.Len(); i++ {
-			item := Single[TEntity](arrValue.Index(i).Interface())
-			items = append(items, item)
-		}
-		return collections.NewList[TEntity](items...)
-	}
 	panic("sliceOrListOrListAny入参必须为切片或collections.List、collections.ListAny集合")
 }
 

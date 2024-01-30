@@ -19,7 +19,7 @@ type assignObj struct {
 // 赋值操作
 func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[string]*valueMeta) error {
 	// 获取指针之后的值
-	receiver.valueMeta = newMetaVal(targetVal, nil)
+	receiver.valueMeta = newMetaVal(targetVal)
 	receiver.sourceMap = sourceMap
 
 	if receiver.valueMeta.Type != fastReflect.Struct {
@@ -242,7 +242,8 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	// new map[K]V
 	newMap := reflect.MakeMap(mapType)
 	// 组装map[K]V 元数据
-	receiver.valueMeta = newMetaVal(newMap, receiver.valueMeta)
+	//receiver.valueMeta = newMetaVal(newMap, receiver.valueMeta)
+	receiver.valueMeta = newStructField(newMap, reflect.StructField{}, receiver.valueMeta)
 	// 赋值组装的字段
 	receiver.assembleMap(sourceMeta)
 

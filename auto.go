@@ -20,7 +20,6 @@ func Auto(from, to any) error {
 	// 遍历来源对象
 	var fAnalysis AnalysisOjb
 	fAnalysis.Analysis(from)
-
 	// 赋值
 	var tAssign assignObj
 	return tAssign.assignment(targetVal, fAnalysis.sourceMap)

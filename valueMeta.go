@@ -1,7 +1,6 @@
 package mapper
 
 import (
-	"fmt"
 	"github.com/farseer-go/fs/fastReflect"
 	"github.com/farseer-go/fs/types"
 	"reflect"
@@ -33,27 +32,30 @@ type valueMeta struct {
 }
 
 // newMeta 得到类型的元数据
-func newMetaVal(value reflect.Value, parent *valueMeta) *valueMeta {
+func newMetaVal(value reflect.Value) *valueMeta {
 	pointerMeta := fastReflect.PointerOf(value.Interface())
-	meta := &valueMeta{}
-	if parent != nil {
-		meta.Parent = parent
-		meta.ParentName = parent.Name
-		meta.Level = parent.Level + 1
-		meta.Name = parent.Name + pointerMeta.Name
+	meta := &valueMeta{
+		PointerMeta: pointerMeta,
+		IsNil:       true,
 	}
-	meta.PointerMeta = pointerMeta
-	meta.IsNil = true
-	meta.IsAnonymous = false
 	meta.setReflectValue(value)
 	return meta
 }
 
 // newStructField 创建子元数据
 func newStructField(value reflect.Value, field reflect.StructField, parent *valueMeta) *valueMeta {
-	mt := newMetaVal(value, parent)
-	mt.ReflectStructField = field
-	mt.IsAnonymous = field.Anonymous
+	pointerMeta := fastReflect.PointerOf(value.Interface())
+	mt := &valueMeta{
+		Parent:             parent,
+		ParentName:         parent.Name,
+		Level:              parent.Level + 1,
+		PointerMeta:        pointerMeta,
+		IsNil:              true,
+		ReflectStructField: field,
+		IsAnonymous:        field.Anonymous,
+	}
+
+	mt.setReflectValue(value)
 
 	// 定义的标签
 	tags := strings.Split(field.Tag.Get("mapper"), ";")
@@ -66,21 +68,52 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 
 	switch parent.Type {
 	case fastReflect.Slice:
-		mt.Name = parent.Name + fmt.Sprintf("[%s]", field.Name)
+		var str strings.Builder
+		str.WriteString(parent.Name)
+		if len(field.Name) > 0 {
+			str.WriteString("[")
+			str.WriteString(field.Name)
+			str.WriteString("]")
+		}
+		mt.Name = str.String()
+		mt.RegexPattern = mt.Name
 	case fastReflect.Map, fastReflect.Dic:
-		mt.Name = parent.Name + fmt.Sprintf("{%s}", field.Name)
+		var str strings.Builder
+		str.WriteString(parent.Name)
+		if len(field.Name) > 0 {
+			str.WriteString("{")
+			str.WriteString(field.Name)
+			str.WriteString("}")
+		}
+		mt.Name = str.String()
+
+		str.Reset()
+		str.WriteString("^")
+		str.WriteString(parent.RegexPattern)
+
+		if len(field.Name) > 0 {
+			str.WriteString("(\\{|)")
+			str.WriteString(field.Name)
+			str.WriteString("(\\}|)")
+		}
+		str.WriteString("$")
+		mt.RegexPattern = str.String()
 	default:
+		var str strings.Builder
+		str.WriteString(parent.Name)
 		// 内嵌字段类型的Name为类型名称，这里用标记代替
 		if field.Anonymous {
-			mt.Name = parent.Name + anonymousSplitTag
+			str.WriteString(anonymousSplitTag)
 		} else {
-			mt.Name = parent.Name + field.Name
+			str.WriteString(field.Name)
 		}
+		mt.Name = str.String()
+		mt.RegexPattern = mt.Name
 	}
 	if mt.Name != "" {
-		mt.RegexPattern = fmt.Sprintf("^%s$", mt.Name)
-		mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "{", "(\\{|)")
+		mt.RegexPattern = strings.ReplaceAll(mt.Name, "{", "(\\{|)")
 		mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "}", "(\\}|)")
+		mt.RegexPattern = "^" + mt.RegexPattern + "$"
 	}
 	//mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "[", "(\\[|)")
 	//mt.RegexPattern = strings.ReplaceAll(mt.RegexPattern, "]", "(\\]|)")
