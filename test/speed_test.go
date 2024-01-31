@@ -1,10 +1,8 @@
 package test
 
 import (
-	"fmt"
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/dateTime"
-	"github.com/farseer-go/fs/stopwatch"
 	"github.com/farseer-go/mapper"
 	"github.com/shopspring/decimal"
 	"testing"
@@ -46,10 +44,9 @@ func BenchmarkMapperToList(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	//arr := lst.ToArray()
 	for i := 0; i < b.N; i++ {
-		sw := stopwatch.StartNew()
+		//sw := stopwatch.StartNew()
 		mapper.ToList[UserVO2](lst)
-		fmt.Println(sw.GetMillisecondsText())
+		//fmt.Println(sw.GetMillisecondsText())
 	}
 }

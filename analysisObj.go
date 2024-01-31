@@ -149,7 +149,7 @@ func (receiver *AnalysisOjb) analysisSlice() {
 func (receiver *AnalysisOjb) analysisList() {
 	// 获取List中的数组元数
 	array := types.GetListToArrayValue(receiver.ReflectValue)
-	if !types.IsNil(array) {
+	if array.Len() > 0 {
 		parent := receiver.valueMeta
 
 		receiver.valueMeta = newStructField(array, reflect.StructField{}, parent, true)
