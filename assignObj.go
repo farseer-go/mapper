@@ -49,7 +49,7 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 		if parent.StructField[i].IsExported() {
 			numFieldValue := parent.ReflectValue.Field(i)
 			// 先分析元数据
-			receiver.valueMeta = newStructField(numFieldValue, parent.StructField[i], parent)
+			receiver.valueMeta = newStructField(numFieldValue, parent.StructField[i], parent, false)
 			receiver.assignField()
 		}
 	}
@@ -119,7 +119,7 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	// 组装[]T 元数据
 	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
 	field := reflect.StructField{Name: ""}
-	receiver.valueMeta = newStructField(reflect.New(receiver.SliceType).Elem(), field, receiver.valueMeta)
+	receiver.valueMeta = newStructField(reflect.New(receiver.SliceType).Elem(), field, receiver.valueMeta, false)
 
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
@@ -144,7 +144,7 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 	// 组装[]T 元数据
 	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
 	field := reflect.StructField{Name: ""}
-	receiver.valueMeta = newStructField(reflect.New(receiver.SliceType).Elem(), field, receiver.valueMeta)
+	receiver.valueMeta = newStructField(reflect.New(receiver.SliceType).Elem(), field, receiver.valueMeta, false)
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
 
@@ -187,7 +187,7 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 		field := reflect.StructField{
 			Name: parse.ToString(i),
 		}
-		receiver.valueMeta = newStructField(reflect.New(targetItemType).Elem(), field, parent)
+		receiver.valueMeta = newStructField(reflect.New(targetItemType).Elem(), field, parent, false)
 		receiver.assignField()
 		newArr = reflect.Append(newArr, receiver.ReflectValue)
 		// 这里改变了层级，需要恢复
@@ -214,19 +214,25 @@ func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 
 	// 遍历
 	if sourceMeta.Type == fastReflect.Map { // sourceMeta != nil &&
+		keyIsGoBasicType := sourceMeta.KeyMeta.Type == fastReflect.GoBasicType
 		iter := sourceMeta.ReflectValue.MapRange()
 		for iter.Next() {
 			// 转成Map的索引字段
-			field := reflect.StructField{
-				Name: parse.ToString(iter.Key().Interface()),
+			mapKey := iter.Key()
+			var field reflect.StructField
+			if keyIsGoBasicType {
+				field.Name = parse.ToString(mapKey.Interface())
+			} else {
+				field.Name = mapKey.String()
 			}
-			receiver.valueMeta = newStructField(reflect.New(parent.ItemMeta.ReflectType).Elem(), field, parent)
+			receiver.valueMeta = newStructField(reflect.New(parent.ItemMeta.ReflectType).Elem(), field, parent, false)
 			receiver.assignField()
+
 			// 如果左边的item是指针，则要转成指针类型
 			if parent.ItemMeta.IsAddr {
 				receiver.ReflectValue = receiver.ReflectValue.Addr()
 			}
-			parent.ReflectValue.SetMapIndex(iter.Key(), receiver.ReflectValue)
+			parent.ReflectValue.SetMapIndex(mapKey, receiver.ReflectValue)
 		}
 	}
 
@@ -238,12 +244,12 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
 
 	// 从Dictionary类型中得source类型：map[K]V
-	mapType := types.GetDictionaryMapType(receiver.ReflectType)
+	//mapType := types.GetDictionaryMapType(receiver.ReflectType)
 	// new map[K]V
-	newMap := reflect.MakeMap(mapType)
+	newMap := reflect.MakeMap(receiver.MapType)
 	// 组装map[K]V 元数据
 	//receiver.valueMeta = newMetaVal(newMap, receiver.valueMeta)
-	receiver.valueMeta = newStructField(newMap, reflect.StructField{}, receiver.valueMeta)
+	receiver.valueMeta = newStructField(newMap, reflect.StructField{}, receiver.valueMeta, false)
 	// 赋值组装的字段
 	receiver.assembleMap(sourceMeta)
 
@@ -273,8 +279,10 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 		if v.RegexPattern == "" {
 			continue
 		}
-		re := regexp.MustCompile(v.RegexPattern)
-		if re.MatchString(receiver.Name) {
+		if v.Regexp == nil {
+			v.Regexp = regexp.MustCompile("^" + v.RegexPattern + "$")
+		}
+		if v.Regexp.MatchString(receiver.Name) {
 			lst.Add(v)
 		}
 	}
