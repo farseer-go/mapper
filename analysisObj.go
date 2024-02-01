@@ -66,7 +66,6 @@ func (receiver *AnalysisOjb) analysisMap() {
 
 		// 先分析元数据
 		receiver.valueMeta = newStructField(mapValue, field, parent, true)
-		receiver.valueMeta.MapKey = mapKey // 设置MapKey
 		receiver.analysisField()
 	}
 

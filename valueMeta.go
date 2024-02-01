@@ -29,7 +29,6 @@ type valueMeta struct {
 	IsAnonymous        bool                // 是否为内嵌类型
 	IsIgnore           bool                // 是否为忽略字段
 	Level              int                 // 当前解析的层数（默认为第0层）
-	MapKey             reflect.Value       // map key
 }
 
 // newMeta 得到类型的元数据
