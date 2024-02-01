@@ -17,24 +17,24 @@ const (
 // 元数据
 type valueMeta struct {
 	fastReflect.PointerMeta
-	Parent             *valueMeta          // 上级元数据
-	ParentName         string              // 上级字段名称
-	Name               string              // 字段名称
-	useRegex           bool                // 使用了正则
-	Regexp             *regexp.Regexp      // 正则
-	RegexPattern       string              // 字段名称匹配规则
-	ReflectValue       reflect.Value       // 值
-	ReflectStructField reflect.StructField // 字段类型
-	IsNil              bool                // 是否为nil
-	IsAnonymous        bool                // 是否为内嵌类型
-	IsIgnore           bool                // 是否为忽略字段
-	Level              int                 // 当前解析的层数（默认为第0层）
+	Parent       *valueMeta     // 上级元数据
+	ParentName   string         // 上级字段名称
+	Name         string         // 字段名称（由ParentName + 当前名称）
+	FieldName    string         // 字段名称（StructField）
+	useRegex     bool           // 使用了正则
+	Regexp       *regexp.Regexp // 正则
+	RegexPattern string         // 字段名称匹配规则
+	ReflectValue reflect.Value  // 值
+	IsNil        bool           // 是否为nil
+	IsAnonymous  bool           // 是否为内嵌类型
+	IsIgnore     bool           // 是否为忽略字段
+	Level        int            // 当前解析的层数（默认为第0层）
 }
 
 // newMeta 得到类型的元数据
-func newMetaVal(value reflect.Value) *valueMeta {
+func newMetaVal(value reflect.Value) valueMeta {
 	pointerMeta := fastReflect.PointerOf(value.Interface())
-	meta := &valueMeta{
+	meta := valueMeta{
 		PointerMeta: pointerMeta,
 		IsNil:       true,
 	}
@@ -43,16 +43,15 @@ func newMetaVal(value reflect.Value) *valueMeta {
 }
 
 // newStructField 创建子元数据
-func newStructField(value reflect.Value, field reflect.StructField, parent *valueMeta, isBuildRegex bool) *valueMeta {
-	pointerMeta := fastReflect.PointerOf(value.Interface())
-	mt := &valueMeta{
-		Parent:             parent,
-		ParentName:         parent.Name,
-		Level:              parent.Level + 1,
-		PointerMeta:        pointerMeta,
-		IsNil:              true,
-		ReflectStructField: field,
-		IsAnonymous:        field.Anonymous,
+func newStructField(value reflect.Value, field reflect.StructField, parent *valueMeta, isBuildRegex bool) valueMeta {
+	mt := valueMeta{
+		Parent:      parent,
+		ParentName:  parent.Name,
+		Level:       parent.Level + 1,
+		PointerMeta: fastReflect.PointerOf(value.Interface()),
+		IsNil:       true,
+		IsAnonymous: field.Anonymous,
+		FieldName:   field.Name,
 	}
 	if parent.useRegex {
 		mt.useRegex = true
@@ -93,7 +92,7 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 		var str strings.Builder
 		str.WriteString(parent.Name)
 		// 内嵌字段类型的Name为类型名称，这里用标记代替
-		if field.Anonymous {
+		if mt.IsAnonymous {
 			str.WriteString(anonymousSplitTag)
 		} else {
 			str.WriteString(field.Name)
@@ -114,22 +113,22 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 func (receiver *valueMeta) setRegex() {
 	switch receiver.Parent.Type {
 	case fastReflect.Slice:
-		if len(receiver.ReflectStructField.Name) > 0 {
+		if len(receiver.FieldName) > 0 {
 			var str strings.Builder
 			str.WriteString(receiver.Parent.RegexPattern)
 			str.WriteString("[")
-			str.WriteString(receiver.ReflectStructField.Name)
+			str.WriteString(receiver.FieldName)
 			str.WriteString("]")
 			receiver.RegexPattern = str.String()
 		} else {
 			receiver.RegexPattern = receiver.Name
 		}
 	case fastReflect.Map, fastReflect.Dic:
-		if len(receiver.ReflectStructField.Name) > 0 {
+		if len(receiver.FieldName) > 0 {
 			var str strings.Builder
 			str.WriteString(receiver.Parent.RegexPattern)
 			str.WriteString("(\\{|)")
-			str.WriteString(receiver.ReflectStructField.Name)
+			str.WriteString(receiver.FieldName)
 			str.WriteString("(\\}|)")
 			receiver.RegexPattern = str.String()
 		} else {
@@ -138,10 +137,10 @@ func (receiver *valueMeta) setRegex() {
 	default:
 		var str strings.Builder
 		str.WriteString(receiver.Parent.RegexPattern)
-		if receiver.ReflectStructField.Anonymous {
+		if receiver.IsAnonymous {
 			str.WriteString(anonymousSplitTag)
 		} else {
-			str.WriteString(receiver.ReflectStructField.Name)
+			str.WriteString(receiver.FieldName)
 		}
 		receiver.RegexPattern = str.String()
 	}
@@ -151,14 +150,13 @@ func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
 	if reflectValue.Kind() == reflect.Pointer && !reflectValue.IsNil() {
 		reflectValue = reflectValue.Elem()
 	}
-
-	receiver.ReflectValue = reflectValue
-	receiver.IsNil = types.IsNil(receiver.ReflectValue)
+	receiver.IsNil = types.IsNil(reflectValue)
 
 	// 取真实的类型
-	if receiver.ReflectValue.Kind() == reflect.Interface && !receiver.IsNil { // && receiver.CanInterface
-		receiver.ReflectValue = receiver.ReflectValue.Elem()
+	if reflectValue.Kind() == reflect.Interface && !receiver.IsNil { // && receiver.CanInterface
+		reflectValue = reflectValue.Elem()
 	}
+	receiver.ReflectValue = reflectValue
 }
 
 // NewReflectValue 左值为指针类型时，需要先初始化

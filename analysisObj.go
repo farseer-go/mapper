@@ -19,7 +19,8 @@ func (receiver *AnalysisOjb) Analysis(from any) {
 	receiver.sourceMap = make(map[string]*valueMeta)
 	// 解析from元数据
 	fromValue := reflect.ValueOf(from)
-	receiver.valueMeta = newMetaVal(fromValue)
+	valMeta := newMetaVal(fromValue)
+	receiver.valueMeta = &valMeta
 	switch receiver.Type {
 	case fastReflect.Map:
 		receiver.analysisMap()
@@ -39,7 +40,8 @@ func (receiver *AnalysisOjb) analysisStruct() {
 			// todo 这里的性能要做测试
 			numFieldValue := parent.ReflectValue.Field(i)
 			// 先分析元数据
-			receiver.valueMeta = newStructField(numFieldValue, parent.StructField[i], parent, true)
+			valMeta := newStructField(numFieldValue, parent.StructField[i], parent, true)
+			receiver.valueMeta = &valMeta
 			receiver.analysisField()
 		}
 	}
@@ -49,7 +51,7 @@ func (receiver *AnalysisOjb) analysisStruct() {
 // 解析map
 func (receiver *AnalysisOjb) analysisMap() {
 	parent := receiver.valueMeta
-	keyIsGoBasicType := receiver.KeyMeta.Type == fastReflect.GoBasicType
+	keyIsGoBasicType := receiver.GetKeyMeta().Type == fastReflect.GoBasicType
 
 	// 遍历map
 	miter := parent.ReflectValue.MapRange()
@@ -65,7 +67,8 @@ func (receiver *AnalysisOjb) analysisMap() {
 		}
 
 		// 先分析元数据
-		receiver.valueMeta = newStructField(mapValue, field, parent, true)
+		valMeta := newStructField(mapValue, field, parent, true)
+		receiver.valueMeta = &valMeta
 		receiver.analysisField()
 	}
 
@@ -78,7 +81,8 @@ func (receiver *AnalysisOjb) analysisDic() {
 	m := types.GetDictionaryToMap(receiver.ReflectValue)
 	// 这里不能用receiver.valueMeta作为父级传入，而必须传receiver.valueMeta.Parent
 	// 因为receiver.ReflectStructField是同一个，否则会出现Name名称重复，如：原来是A，变成AA
-	receiver.valueMeta = newStructField(m, receiver.ReflectStructField, receiver.valueMeta.Parent, true)
+	valMeta := newStructField(m, reflect.StructField{Name: receiver.FieldName, Anonymous: receiver.IsAnonymous}, receiver.valueMeta.Parent, true)
+	receiver.valueMeta = &valMeta
 	// 解析map
 	receiver.analysisMap()
 	// Dic统一将转成map类型，方便赋值时直接取map，而不用区分类型
@@ -137,7 +141,8 @@ func (receiver *AnalysisOjb) analysisSlice() {
 		}
 
 		// 先分析元数据
-		receiver.valueMeta = newStructField(sVal, field, parent, true)
+		valMeta := newStructField(sVal, field, parent, true)
+		receiver.valueMeta = &valMeta
 		receiver.analysisField()
 	}
 
@@ -151,7 +156,8 @@ func (receiver *AnalysisOjb) analysisList() {
 	if array.Len() > 0 {
 		parent := receiver.valueMeta
 
-		receiver.valueMeta = newStructField(array, reflect.StructField{}, parent, true)
+		valMeta := newStructField(array, reflect.StructField{}, parent, true)
+		receiver.valueMeta = &valMeta
 		receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		// 分析List中的切片
 		receiver.analysisSlice()
