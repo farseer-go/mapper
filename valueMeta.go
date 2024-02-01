@@ -33,12 +33,11 @@ type valueMeta struct {
 
 // newMeta 得到类型的元数据
 func newMetaVal(value reflect.Value) valueMeta {
-	pointerMeta := fastReflect.PointerOf(value.Interface())
 	meta := valueMeta{
-		PointerMeta: pointerMeta,
-		IsNil:       true,
+		IsNil: true,
 	}
 	meta.setReflectValue(value)
+	meta.PointerMeta = fastReflect.PointerOfValue(meta.ReflectValue)
 	return meta
 }
 
@@ -48,7 +47,6 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 		Parent:      parent,
 		ParentName:  parent.Name,
 		Level:       parent.Level + 1,
-		PointerMeta: fastReflect.PointerOf(value.Interface()),
 		IsNil:       true,
 		IsAnonymous: field.Anonymous,
 		FieldName:   field.Name,
@@ -57,6 +55,7 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 		mt.useRegex = true
 	}
 	mt.setReflectValue(value)
+	mt.PointerMeta = fastReflect.PointerOfValue(mt.ReflectValue)
 
 	// 定义的标签
 	//tags := strings.Split(field.Tag.Get("mapper"), ";")

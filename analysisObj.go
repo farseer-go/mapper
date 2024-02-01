@@ -92,7 +92,7 @@ func (receiver *AnalysisOjb) analysisDic() {
 
 // 解析字段
 func (receiver *AnalysisOjb) analysisField() {
-	// 不可导出类型，则退出
+	// 不可导出类型，则退出（此行必须先执行，否则会出现指针字段不需要赋值时，被赋值了）
 	if receiver.IsNil || receiver.Type == fastReflect.Interface {
 		return
 	}
