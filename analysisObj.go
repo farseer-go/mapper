@@ -160,7 +160,7 @@ func (receiver *AnalysisOjb) analysisList() {
 		receiver.valueMeta = &valMeta
 		receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		// 分析List中的切片
-		receiver.analysisSlice()
+		receiver.analysisField()
 
 		receiver.valueMeta = parent
 	}
