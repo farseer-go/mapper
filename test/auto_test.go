@@ -12,16 +12,11 @@ import (
 )
 
 func TestDtoToDoList(t *testing.T) {
-	arrayUser := make([]UserVO, 1)
-	lst3 := ListType(collections.NewList[CountVO](CountVO{Count: 678}))
-	lst := collections.NewList[CountVO](CountVO{Count: 123})
-	lst2 := collections.NewList[CountVO](CountVO{Count: 464})
-	arrayUser[0] = UserVO{List: lst}
 	dto := TaskDTO{
-		Array:   arrayUser,
-		List:    lst,
-		List2:   lst2,
-		LstType: lst3,
+		Array:   []UserVO{{List: collections.NewList[CountVO](CountVO{Count: 123})}},
+		List:    collections.NewList[CountVO](CountVO{Count: 123}),
+		List2:   collections.NewList[CountVO](CountVO{Count: 464}),
+		LstType: ListType(collections.NewList[CountVO](CountVO{Count: 678})),
 	}
 	var do TaskDO
 	_ = mapper.Auto(dto, &do)

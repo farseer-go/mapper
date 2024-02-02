@@ -6,7 +6,6 @@ import (
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
 	"reflect"
-	"strings"
 )
 
 type AnalysisOjb struct {
@@ -14,9 +13,10 @@ type AnalysisOjb struct {
 	sourceMap  map[string]*valueMeta // 分析后的结果
 }
 
-func (receiver *AnalysisOjb) Analysis(from any) {
+// Analysis 分析入口
+func (receiver *AnalysisOjb) Analysis(from any, sourceMap map[string]*valueMeta) {
 	// 定义存储map ,保存解析出来的字段和值
-	receiver.sourceMap = make(map[string]*valueMeta)
+	receiver.sourceMap = sourceMap
 	// 解析from元数据
 	fromValue := reflect.ValueOf(from)
 	valMeta := newMetaVal(fromValue)
@@ -120,11 +120,11 @@ func (receiver *AnalysisOjb) analysisField() {
 		return
 	default:
 		// 非结构体遍历（好像没用到）
-		if strings.Contains(receiver.ParentName, receiver.Name) {
-			receiver.sourceMap[receiver.ParentName] = receiver.valueMeta
-		} else {
-			receiver.sourceMap[receiver.Name] = receiver.valueMeta
-		}
+		//if strings.Contains(receiver.ParentName, receiver.Name) {
+		//	receiver.sourceMap[receiver.ParentName] = receiver.valueMeta
+		//} else {
+		//	receiver.sourceMap[receiver.Name] = receiver.valueMeta
+		//}
 	}
 }
 
@@ -136,9 +136,7 @@ func (receiver *AnalysisOjb) analysisSlice() {
 	for i := 0; i < length; i++ {
 		sVal := parent.ReflectValue.Index(i)
 
-		field := reflect.StructField{
-			Name: parse.ToString(i),
-		}
+		field := reflect.StructField{Name: parse.ToString(i)}
 
 		// 先分析元数据
 		valMeta := newStructField(sVal, field, parent, true)

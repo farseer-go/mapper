@@ -17,12 +17,14 @@ func Auto(from, to any) error {
 	// 转换完成之后 执行初始化MapperInit方法
 	defer execInitFunc(targetVal)
 
+	sourceMap := make(map[string]*valueMeta)
+
 	// 遍历来源对象
 	var fAnalysis AnalysisOjb
-	fAnalysis.Analysis(from)
+	fAnalysis.Analysis(from, sourceMap)
 	// 赋值
 	var tAssign assignObj
-	return tAssign.assignment(targetVal, fAnalysis.sourceMap)
+	return tAssign.assignment(targetVal, sourceMap)
 }
 
 // StructToMap 结构转map
