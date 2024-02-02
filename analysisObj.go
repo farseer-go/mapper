@@ -158,7 +158,6 @@ func (receiver *AnalysisOjb) analysisList() {
 
 		valMeta := newStructField(array, reflect.StructField{}, parent, true)
 		receiver.valueMeta = &valMeta
-		receiver.sourceMap[receiver.Name] = receiver.valueMeta
 		// 分析List中的切片
 		receiver.analysisField()
 
