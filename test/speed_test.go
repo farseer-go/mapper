@@ -19,7 +19,7 @@ import (
 // 第5次优化：986 ms BenchmarkMapperToList-12    	       1	1018944959 ns/op	581959224 B/op	11226437 allocs/op
 // 第6次优化：825 ms BenchmarkMapperToList-12    	       2	 827262450 ns/op	544626832 B/op	 9735507 allocs/op
 // 第7次优化：602 ms BenchmarkMapperToList-12    	       2	 607876002 ns/op	512319544 B/op	 5675569 allocs/op
-// 第8次优化：538 ms BenchmarkMapperToList-12    	       2	 713063544 ns/op	577931260 B/op	 5045624 allocs/op
+// 第8次优化：516 ms BenchmarkMapperToList-12    	       2	 713063544 ns/op	577931260 B/op	 5045624 allocs/op
 func BenchmarkMapperToList(b *testing.B) {
 	lst := collections.NewList[UserVO]()
 	for i := 0; i < 10000; i++ {
