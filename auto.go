@@ -8,6 +8,11 @@ import (
 
 // Auto 对象相互转换
 func Auto(from, to any) error {
+	return auto(reflect.ValueOf(from), to)
+}
+
+// Auto2 对象相互转换
+func auto(from reflect.Value, to any) error {
 	targetVal := reflect.ValueOf(to)
 	//判断是否指针
 	if targetVal.Kind() != reflect.Pointer {
@@ -22,6 +27,7 @@ func Auto(from, to any) error {
 	// 遍历来源对象
 	var fAnalysis AnalysisOjb
 	fAnalysis.Analysis(from, sourceMap)
+
 	// 赋值
 	var tAssign assignObj
 	return tAssign.assignment(targetVal, sourceMap)

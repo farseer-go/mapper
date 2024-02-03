@@ -20,7 +20,7 @@ type assignObj struct {
 func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[string]*valueMeta) error {
 	// 获取指针之后的值
 	metaVal := newMetaVal(targetVal)
-	receiver.valueMeta = &metaVal
+	receiver.valueMeta = metaVal
 	receiver.sourceMap = sourceMap
 
 	if receiver.valueMeta.Type != fastReflect.Struct {
@@ -51,7 +51,7 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 			numFieldValue := parent.ReflectValue.Field(i)
 			// 先分析元数据
 			valMeta := newStructField(numFieldValue, parent.StructField[i], parent, false)
-			receiver.valueMeta = &valMeta
+			receiver.valueMeta = valMeta
 			receiver.assignField()
 		}
 	}
@@ -121,7 +121,7 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	// 组装[]T 元数据
 	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
 	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, receiver.valueMeta, false)
-	receiver.valueMeta = &valMeta
+	receiver.valueMeta = valMeta
 
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
@@ -146,7 +146,7 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 	// 组装[]T 元数据
 	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
 	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, receiver.valueMeta, false)
-	receiver.valueMeta = &valMeta
+	receiver.valueMeta = valMeta
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
 
@@ -194,7 +194,7 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 			Name: parse.ToString(i),
 		}
 		valMeta := newStructField(reflect.New(targetItemType).Elem(), field, parent, false)
-		receiver.valueMeta = &valMeta
+		receiver.valueMeta = valMeta
 		receiver.assignField()
 		newArr = reflect.Append(newArr, receiver.ReflectValue)
 		// 这里改变了层级，需要恢复
@@ -237,7 +237,7 @@ func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 			}
 
 			valMeta := newStructField(reflect.New(itemMeta.ReflectType).Elem(), field, parent, false)
-			receiver.valueMeta = &valMeta
+			receiver.valueMeta = valMeta
 			receiver.assignField()
 
 			// 如果左边的item是指针，则要转成指针类型
@@ -262,7 +262,7 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	// 组装map[K]V 元数据
 	//receiver.valueMeta = newMetaVal(newMap, receiver.valueMeta)
 	valMeta := newStructField(newMap, reflect.StructField{}, receiver.valueMeta, false)
-	receiver.valueMeta = &valMeta
+	receiver.valueMeta = valMeta
 	// 赋值组装的字段
 	receiver.assembleMap(sourceMeta)
 

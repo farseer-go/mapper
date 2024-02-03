@@ -32,8 +32,8 @@ type valueMeta struct {
 }
 
 // newMeta 得到类型的元数据
-func newMetaVal(value reflect.Value) valueMeta {
-	meta := valueMeta{
+func newMetaVal(value reflect.Value) *valueMeta {
+	meta := &valueMeta{
 		IsNil: true,
 	}
 	meta.setReflectValue(value)
@@ -42,8 +42,8 @@ func newMetaVal(value reflect.Value) valueMeta {
 }
 
 // newStructField 创建子元数据
-func newStructField(value reflect.Value, field reflect.StructField, parent *valueMeta, isBuildRegex bool) valueMeta {
-	mt := valueMeta{
+func newStructField(value reflect.Value, field reflect.StructField, parent *valueMeta, isBuildRegex bool) *valueMeta {
+	mt := &valueMeta{
 		Parent:      parent,
 		ParentName:  parent.Name,
 		Level:       parent.Level + 1,

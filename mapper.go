@@ -23,9 +23,8 @@ func Array[T any](fromSlice any) []T {
 	//获取到具体的值信息
 	sliArray := reflect.Indirect(reflect.ValueOf(fromSlice))
 	for i := 0; i < sliArray.Len(); i++ {
-		item := sliArray.Index(i)
 		var tInfo T
-		_ = Auto(item.Interface(), &tInfo)
+		_ = auto(sliArray.Index(i), &tInfo)
 		toSlice = append(toSlice, tInfo)
 	}
 	return toSlice
@@ -34,7 +33,7 @@ func Array[T any](fromSlice any) []T {
 // Single 单个转换
 func Single[TEntity any](object any) TEntity {
 	var toObj TEntity
-	_ = Auto(object, &toObj)
+	_ = auto(reflect.ValueOf(object), &toObj)
 	return toObj
 }
 
@@ -73,7 +72,6 @@ func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
 			sliceOrListOrListAnyValue = sliceOrListOrListAnyValue.Elem()
 		}
 
-		//var arr []TEntity
 		items := types.GetListToArray(sliceOrListOrListAnyValue)
 		arr := Array[TEntity](items)
 		return collections.NewList[TEntity](arr...)
