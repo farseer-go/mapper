@@ -27,7 +27,6 @@ func auto(from reflect.Value, to any) error {
 	// 遍历来源对象
 	var fAnalysis AnalysisOjb
 	fAnalysis.Analysis(from, sourceMap)
-
 	// 赋值
 	var tAssign assignObj
 	return tAssign.assignment(targetVal, sourceMap)
