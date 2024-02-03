@@ -46,14 +46,12 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 	}
 
 	parent := receiver.valueMeta
-	for i := 0; i < parent.NumField; i++ {
-		if parent.StructField[i].IsExported() {
-			numFieldValue := parent.ReflectValue.Field(i)
-			// 先分析元数据
-			valMeta := newStructField(numFieldValue, parent.StructField[i], parent, false)
-			receiver.valueMeta = valMeta
-			receiver.assignField()
-		}
+	for _, i := range parent.ExportedField {
+		numFieldValue := parent.ReflectValue.Field(i)
+		// 先分析元数据
+		valMeta := newStructField(numFieldValue, parent.StructField[i], parent, false)
+		receiver.valueMeta = valMeta
+		receiver.assignField()
 	}
 	receiver.valueMeta = parent
 	receiver.Addr()
@@ -131,7 +129,7 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	for i := 0; i < receiver.ReflectValue.Len(); i++ {
 		//获取数组内的元素
 		structObj := receiver.ReflectValue.Index(i)
-		types.ListAdd(toList, structObj.Interface())
+		types.ListAddValue(toList, structObj)
 	}
 
 	receiver.valueMeta = parent
@@ -158,7 +156,7 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 	for i := 0; i < receiver.ReflectValue.Len(); i++ {
 		//获取数组内的元素
 		structObj := receiver.ReflectValue.Index(i)
-		types.ListAdd(toList, structObj.Interface())
+		types.ListAddValue(toList, structObj)
 	}
 	receiver.valueMeta = parent
 	// 转换成自定义类型
@@ -221,23 +219,17 @@ func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 
 	// 遍历
 	if sourceMeta.Type == fastReflect.Map { // sourceMeta != nil &&
-		keyMeta := sourceMeta.GetKeyMeta()
 		itemMeta := parent.GetItemMeta()
-		keyIsGoBasicType := keyMeta.Type == fastReflect.GoBasicType
+		// 创建一个共享的左字段（没必要每次遍历时创建一个新的）
+		value := reflect.New(itemMeta.ReflectType).Elem()
 
 		iter := sourceMeta.ReflectValue.MapRange()
 		for iter.Next() {
 			// 转成Map的索引字段
 			mapKey := iter.Key()
-			var field reflect.StructField
-			if keyIsGoBasicType {
-				field.Name = parse.ToString(mapKey.Interface())
-			} else {
-				field.Name = mapKey.String()
-			}
-
-			valMeta := newStructField(reflect.New(itemMeta.ReflectType).Elem(), field, parent, false)
-			receiver.valueMeta = valMeta
+			field := reflect.StructField{Name: parse.ToString(mapKey.Interface())}
+			// 先分析元数据
+			receiver.valueMeta = newStructField(value, field, parent, false)
 			receiver.assignField()
 
 			// 如果左边的item是指针，则要转成指针类型

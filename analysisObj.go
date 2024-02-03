@@ -6,6 +6,7 @@ import (
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
 	"reflect"
+	"strconv"
 )
 
 type AnalysisOjb struct {
@@ -17,8 +18,6 @@ type AnalysisOjb struct {
 func (receiver *AnalysisOjb) Analysis(fromValue reflect.Value, sourceMap map[string]*valueMeta) {
 	// 定义存储map ,保存解析出来的字段和值
 	receiver.sourceMap = sourceMap
-	// 解析from元数据
-	//fromValue := reflect.ValueOf(from)
 
 	valMeta := newMetaVal(fromValue)
 	receiver.valueMeta = valMeta
@@ -37,15 +36,12 @@ func (receiver *AnalysisOjb) Analysis(fromValue reflect.Value, sourceMap map[str
 func (receiver *AnalysisOjb) analysisStruct() {
 	parent := receiver.valueMeta
 	// 结构体
-	for i := 0; i < parent.NumField; i++ {
-		if parent.StructField[i].IsExported() {
-			// todo 这里的性能要做测试
-			numFieldValue := parent.ReflectValue.Field(i)
-			// 先分析元数据
-			valMeta := newStructField(numFieldValue, parent.StructField[i], parent, true)
-			receiver.valueMeta = valMeta
-			receiver.analysisField()
-		}
+	for _, i := range parent.ExportedField {
+		numFieldValue := parent.ReflectValue.Field(i)
+		// 先分析元数据
+		valMeta := newStructField(numFieldValue, parent.StructField[i], parent, true)
+		receiver.valueMeta = valMeta
+		receiver.analysisField()
 	}
 	receiver.valueMeta = parent
 }
@@ -53,20 +49,12 @@ func (receiver *AnalysisOjb) analysisStruct() {
 // 解析map
 func (receiver *AnalysisOjb) analysisMap() {
 	parent := receiver.valueMeta
-	keyIsGoBasicType := receiver.GetKeyMeta().Type == fastReflect.GoBasicType
-
 	// 遍历map
 	miter := parent.ReflectValue.MapRange()
 	for miter.Next() {
 		mapKey := miter.Key()
 		mapValue := miter.Value()
-		var field reflect.StructField
-		// keyName有可能出现<int64>这种值，所以如果是基础类型，再取一次。
-		if keyIsGoBasicType {
-			field.Name = parse.ToString(mapKey.Interface())
-		} else {
-			field.Name = mapKey.String()
-		}
+		field := reflect.StructField{Name: parse.ToString(mapKey.Interface())}
 
 		// 先分析元数据
 		valMeta := newStructField(mapValue, field, parent, true)
@@ -83,8 +71,7 @@ func (receiver *AnalysisOjb) analysisDic() {
 	m := types.GetDictionaryToMap(receiver.ReflectValue)
 	// 这里不能用receiver.valueMeta作为父级传入，而必须传receiver.valueMeta.Parent
 	// 因为receiver.ReflectStructField是同一个，否则会出现Name名称重复，如：原来是A，变成AA
-	valMeta := newStructField(m, reflect.StructField{Name: receiver.FieldName, Anonymous: receiver.IsAnonymous}, receiver.valueMeta.Parent, true)
-	receiver.valueMeta = valMeta
+	receiver.valueMeta = newStructField(m, reflect.StructField{Name: receiver.FieldName, Anonymous: receiver.IsAnonymous}, receiver.valueMeta.Parent, true)
 	// 解析map
 	receiver.analysisMap()
 	// Dic统一将转成map类型，方便赋值时直接取map，而不用区分类型
@@ -138,7 +125,7 @@ func (receiver *AnalysisOjb) analysisSlice() {
 	for i := 0; i < length; i++ {
 		sVal := parent.ReflectValue.Index(i)
 
-		field := reflect.StructField{Name: parse.ToString(i)}
+		field := reflect.StructField{Name: strconv.Itoa(i)}
 
 		// 先分析元数据
 		valMeta := newStructField(sVal, field, parent, true)
@@ -156,8 +143,7 @@ func (receiver *AnalysisOjb) analysisList() {
 	if array.Len() > 0 {
 		parent := receiver.valueMeta
 
-		valMeta := newStructField(array, reflect.StructField{}, parent, true)
-		receiver.valueMeta = valMeta
+		receiver.valueMeta = newStructField(array, reflect.StructField{}, parent, true)
 		// 分析List中的切片
 		receiver.analysisField()
 
