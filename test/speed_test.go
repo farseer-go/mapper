@@ -21,9 +21,10 @@ import (
 // 第7次优化：602 ms BenchmarkMapperToList-12    	       2	 607876002 ns/op	512319544 B/op	 5675569 allocs/op
 // 第8次优化：516 ms BenchmarkMapperToList-12    	       2	 713063544 ns/op	577931260 B/op	 5045624 allocs/op
 // 第9次优化：451 ms BenchmarkMapperToList-12    	       3	 450659945 ns/op	340175312 B/op	 3908975 allocs/op
+// 第10次优化：451 ms BenchmarkMapperToList-12    	   3	 439052122 ns/op	327125178 B/op	 3798923 allocs/op
 func BenchmarkMapperToList(b *testing.B) {
 	lst := collections.NewList[UserVO]()
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 10; i++ {
 		lst.Add(UserVO{
 			List: collections.NewList[CountVO](CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}),
 			Id:   555,

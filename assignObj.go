@@ -3,12 +3,14 @@ package mapper
 import (
 	"fmt"
 	"github.com/farseer-go/collections"
+	"github.com/farseer-go/fs/dateTime"
 	"github.com/farseer-go/fs/fastReflect"
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type assignObj struct {
@@ -99,8 +101,46 @@ func (receiver *assignObj) assignField() {
 		receiver.assembleCustomList(sourceValue)
 	case fastReflect.Array:
 	case fastReflect.GoBasicType, fastReflect.Interface:
-		val := parse.ConvertValue(sourceValue.ReflectValue.Interface(), receiver.ReflectType)
-		receiver.ReflectValue.Set(val)
+		val := sourceValue.ReflectValue.Interface()
+		if receiver.ReflectTypeString != sourceValue.ReflectTypeString {
+			val = parse.ConvertValue(sourceValue.ReflectValue.Interface(), receiver.ReflectType)
+		}
+		switch {
+		case receiver.Kind == reflect.String:
+			*(*string)(receiver.PointerValue) = val.(string)
+		case receiver.Kind == reflect.Bool:
+			*(*bool)(receiver.PointerValue) = val.(bool)
+		case receiver.Kind == reflect.Int:
+			*(*int)(receiver.PointerValue) = val.(int)
+		case receiver.Kind == reflect.Int8:
+			*(*int8)(receiver.PointerValue) = val.(int8)
+		case receiver.Kind == reflect.Int16:
+			*(*int16)(receiver.PointerValue) = val.(int16)
+		case receiver.Kind == reflect.Int32:
+			*(*int32)(receiver.PointerValue) = val.(int32)
+		case receiver.Kind == reflect.Int64:
+			*(*int64)(receiver.PointerValue) = val.(int64)
+		case receiver.Kind == reflect.Uint:
+			*(*uint)(receiver.PointerValue) = val.(uint)
+		case receiver.Kind == reflect.Uint8:
+			*(*uint8)(receiver.PointerValue) = val.(uint8)
+		case receiver.Kind == reflect.Uint16:
+			*(*uint16)(receiver.PointerValue) = val.(uint16)
+		case receiver.Kind == reflect.Uint32:
+			*(*uint32)(receiver.PointerValue) = val.(uint32)
+		case receiver.Kind == reflect.Uint64:
+			*(*uint64)(receiver.PointerValue) = val.(uint64)
+		case receiver.Kind == reflect.Float32:
+			*(*float32)(receiver.PointerValue) = val.(float32)
+		case receiver.Kind == reflect.Float64:
+			*(*float64)(receiver.PointerValue) = val.(float64)
+		case receiver.IsTime:
+			*(*time.Time)(receiver.PointerValue) = val.(time.Time)
+		case receiver.IsDateTime:
+			*(*dateTime.DateTime)(receiver.PointerValue) = val.(dateTime.DateTime)
+		default:
+			receiver.ReflectValue.Set(reflect.ValueOf(val))
+		}
 	case fastReflect.Struct:
 		receiver.assembleStruct(sourceValue)
 	case fastReflect.Map:
@@ -126,10 +166,12 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 
 	// new List[T]
 	toList := types.ListNew(parent.ReflectType)
+	method := types.GetAddMethod(toList)
+
 	for i := 0; i < receiver.ReflectValue.Len(); i++ {
 		//获取数组内的元素
 		structObj := receiver.ReflectValue.Index(i)
-		types.ListAddValue(toList, structObj)
+		method.Call([]reflect.Value{structObj})
 	}
 
 	receiver.valueMeta = parent
@@ -152,11 +194,12 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 	lstType := reflect.ValueOf(reflect.New(parent.ReflectType).Elem().MethodByName("ToList").Call([]reflect.Value{})[0].Interface()).Type()
 	// new List[T]
 	toList := types.ListNew(lstType)
+	method := types.GetAddMethod(toList)
 
 	for i := 0; i < receiver.ReflectValue.Len(); i++ {
 		//获取数组内的元素
 		structObj := receiver.ReflectValue.Index(i)
-		types.ListAddValue(toList, structObj)
+		method.Call([]reflect.Value{structObj})
 	}
 	receiver.valueMeta = parent
 	// 转换成自定义类型
@@ -173,33 +216,32 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 	// T
 	targetItemType := itemMeta.ReflectType
 	// New []T
-	newArr := reflect.MakeSlice(receiver.SliceType, 0, 0)
+	newArr := receiver.ZeroReflectValue
+	//newArr := reflect.MakeSlice(receiver.SliceType, 0, 0)
 
 	// 遍历源数组（前面已经判断这里一定是切片类型）
 	sourceSliceCount := sourceMeta.ReflectValue.Len()
-	for i := 0; i < sourceSliceCount; i++ {
-		// 获取数组内的元素
-		sourceItemValue := sourceMeta.ReflectValue.Index(i)
-
-		// item类型一致，直接赋值
-		if itemMeta.ReflectTypeString == sourceItemMeta.ReflectTypeString {
+	// item类型一致，直接赋值
+	if itemMeta.ReflectTypeString == sourceItemMeta.ReflectTypeString {
+		for i := 0; i < sourceSliceCount; i++ {
+			// 获取数组内的元素
+			sourceItemValue := sourceMeta.ReflectValue.Index(i)
 			newArr = reflect.Append(newArr, sourceItemValue)
-			continue
 		}
-
-		// 转成切片的索引字段
-		field := reflect.StructField{
-			Name: parse.ToString(i),
+	} else {
+		for i := 0; i < sourceSliceCount; i++ {
+			// 转成切片的索引字段
+			field := reflect.StructField{
+				Name: parse.ToString(i),
+			}
+			valMeta := newStructField(reflect.New(targetItemType).Elem(), field, parent, false)
+			receiver.valueMeta = valMeta
+			receiver.assignField()
+			newArr = reflect.Append(newArr, receiver.ReflectValue)
+			// 这里改变了层级，需要恢复
+			receiver.valueMeta = parent
 		}
-		valMeta := newStructField(reflect.New(targetItemType).Elem(), field, parent, false)
-		receiver.valueMeta = valMeta
-		receiver.assignField()
-		newArr = reflect.Append(newArr, receiver.ReflectValue)
-		// 这里改变了层级，需要恢复
-		receiver.valueMeta = parent
-		continue
 	}
-
 	receiver.valueMeta = parent
 
 	// 有值，才要赋值，不然会出现没意义的实例化
@@ -251,6 +293,7 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	//mapType := types.GetDictionaryMapType(receiver.ReflectType)
 	// new map[K]V
 	newMap := reflect.MakeMap(receiver.MapType)
+	//newMap := receiver.ZeroReflectValue
 	// 组装map[K]V 元数据
 	//receiver.valueMeta = newMetaVal(newMap, receiver.valueMeta)
 	valMeta := newStructField(newMap, reflect.StructField{}, receiver.valueMeta, false)
@@ -281,7 +324,7 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 	lst := collections.NewList[*valueMeta]()
 	for _, v := range receiver.sourceMap {
 		// 跳过没有设置正则的源
-		if v.RegexPattern == "" {
+		if len(v.RegexPattern) == 0 {
 			continue
 		}
 		if v.Regexp == nil {
@@ -296,7 +339,6 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 		return len(item.Name)
 	}).First()
 
-	// 没有直接匹配到
 	return sourceValue
 }
 

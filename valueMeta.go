@@ -90,8 +90,6 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 	// 正则
 	if mt.useRegex {
 		mt.setRegex()
-	} else {
-		mt.RegexPattern = mt.Name
 	}
 	return mt
 }
@@ -102,37 +100,16 @@ func (receiver *valueMeta) setRegex() {
 	case fastReflect.Slice:
 		if len(receiver.FieldName) > 0 {
 			receiver.RegexPattern = receiver.Parent.RegexPattern + "[" + receiver.FieldName + "]"
-			//var str strings.Builder
-			//str.WriteString(receiver.Parent.RegexPattern)
-			//str.WriteString("[")
-			//str.WriteString(receiver.FieldName)
-			//str.WriteString("]")
-			//receiver.RegexPattern = str.String()
 		} else {
 			receiver.RegexPattern = receiver.Name
 		}
 	case fastReflect.Map, fastReflect.Dic:
 		if len(receiver.FieldName) > 0 {
 			receiver.RegexPattern = receiver.Parent.RegexPattern + "(\\{|)" + receiver.FieldName + "(\\}|)"
-			//var str strings.Builder
-			//str.WriteString(receiver.Parent.RegexPattern)
-			//str.WriteString("(\\{|)")
-			//str.WriteString(receiver.FieldName)
-			//str.WriteString("(\\}|)")
-			//receiver.RegexPattern = str.String()
 		} else {
 			receiver.RegexPattern = receiver.Name
 		}
 	default:
-		//var str strings.Builder
-		//str.WriteString(receiver.Parent.RegexPattern)
-		//if receiver.IsAnonymous {
-		//	str.WriteString(anonymousSplitTag)
-		//} else {
-		//	str.WriteString(receiver.FieldName)
-		//}
-		//receiver.RegexPattern = str.String()
-
 		if receiver.IsAnonymous {
 			receiver.RegexPattern = receiver.Parent.RegexPattern + anonymousSplitTag
 		} else {
