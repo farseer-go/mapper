@@ -110,25 +110,25 @@ func (receiver *assignObj) assignField() {
 			*(*string)(receiver.PointerValue) = val.(string)
 		case receiver.Kind == reflect.Bool:
 			*(*bool)(receiver.PointerValue) = val.(bool)
-		case receiver.Kind == reflect.Int:
+		case !receiver.IsEmum && receiver.Kind == reflect.Int:
 			*(*int)(receiver.PointerValue) = val.(int)
-		case receiver.Kind == reflect.Int8:
+		case !receiver.IsEmum && receiver.Kind == reflect.Int8:
 			*(*int8)(receiver.PointerValue) = val.(int8)
-		case receiver.Kind == reflect.Int16:
+		case !receiver.IsEmum && receiver.Kind == reflect.Int16:
 			*(*int16)(receiver.PointerValue) = val.(int16)
-		case receiver.Kind == reflect.Int32:
+		case !receiver.IsEmum && receiver.Kind == reflect.Int32:
 			*(*int32)(receiver.PointerValue) = val.(int32)
-		case receiver.Kind == reflect.Int64:
+		case !receiver.IsEmum && receiver.Kind == reflect.Int64:
 			*(*int64)(receiver.PointerValue) = val.(int64)
-		case receiver.Kind == reflect.Uint:
+		case !receiver.IsEmum && receiver.Kind == reflect.Uint:
 			*(*uint)(receiver.PointerValue) = val.(uint)
-		case receiver.Kind == reflect.Uint8:
+		case !receiver.IsEmum && receiver.Kind == reflect.Uint8:
 			*(*uint8)(receiver.PointerValue) = val.(uint8)
-		case receiver.Kind == reflect.Uint16:
+		case !receiver.IsEmum && receiver.Kind == reflect.Uint16:
 			*(*uint16)(receiver.PointerValue) = val.(uint16)
-		case receiver.Kind == reflect.Uint32:
+		case !receiver.IsEmum && receiver.Kind == reflect.Uint32:
 			*(*uint32)(receiver.PointerValue) = val.(uint32)
-		case receiver.Kind == reflect.Uint64:
+		case !receiver.IsEmum && receiver.Kind == reflect.Uint64:
 			*(*uint64)(receiver.PointerValue) = val.(uint64)
 		case receiver.Kind == reflect.Float32:
 			*(*float32)(receiver.PointerValue) = val.(float32)
