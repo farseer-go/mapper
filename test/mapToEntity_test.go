@@ -3,9 +3,24 @@ package test
 import (
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/dateTime"
+	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/mapper"
 	"github.com/stretchr/testify/assert"
 	"testing"
+)
+
+type eumCallTypeEnum int
+
+const (
+	Http          eumCallTypeEnum = iota // Http
+	Grpc                                 // Grpc
+	Database                             // Database
+	Redis                                // Redis
+	Mq                                   // Mq
+	Elasticsearch                        // Elasticsearch
+	Etcd                                 // Etcd
+	Hand                                 // Hand
+	EventPublish                         // EventPublish
 )
 
 type BaseEntity struct {
@@ -26,6 +41,7 @@ type MapEntity struct {
 	Sub        SubMapEntity
 	ClusterVer map[int64]*SubMapEntity
 	Head       collections.Dictionary[string, string]
+	CallType   eumCallTypeEnum
 }
 
 func TestMapToEntity(t *testing.T) {
@@ -52,6 +68,7 @@ func TestMapToEntity(t *testing.T) {
 	m["Head"] = map[string]any{
 		"Content-Type": "application/json",
 	}
+	m["CallType"] = 1
 
 	entity := mapper.Single[MapEntity](m)
 	assert.Equal(t, m["AppId"], entity.AppId)
@@ -66,4 +83,5 @@ func TestMapToEntity(t *testing.T) {
 	assert.Equal(t, m["ClusterVer"].(map[int64]*SubMapEntity)[2].Age, entity.ClusterVer[2].Age)
 	assert.Equal(t, m["ClusterVer"].(map[int64]*SubMapEntity)[2].Caption, entity.ClusterVer[2].Caption)
 	assert.Equal(t, m["Head"].(map[string]any)["Content-Type"], entity.Head.GetValue("Content-Type"))
+	assert.Equal(t, eumCallTypeEnum(parse.ToInt(m["CallType"])), entity.CallType)
 }
