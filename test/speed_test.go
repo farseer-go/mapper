@@ -24,7 +24,7 @@ import (
 // 第10次优化：451 ms BenchmarkMapperToList-12    	   3	 439052122 ns/op	327125178 B/op	 3798923 allocs/op
 func BenchmarkMapperToList(b *testing.B) {
 	lst := collections.NewList[UserVO]()
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 10000; i++ {
 		lst.Add(UserVO{
 			List: collections.NewList[CountVO](CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}),
 			Id:   555,
