@@ -219,27 +219,30 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 	newArr := receiver.ZeroReflectValue
 	//newArr := reflect.MakeSlice(receiver.SliceType, 0, 0)
 
+	sourceSliceCount := 0
 	// 遍历源数组（前面已经判断这里一定是切片类型）
-	sourceSliceCount := sourceMeta.ReflectValue.Len()
-	// item类型一致，直接赋值
-	if itemMeta.ReflectTypeString == sourceItemMeta.ReflectTypeString {
-		for i := 0; i < sourceSliceCount; i++ {
-			// 获取数组内的元素
-			sourceItemValue := sourceMeta.ReflectValue.Index(i)
-			newArr = reflect.Append(newArr, sourceItemValue)
-		}
-	} else {
-		for i := 0; i < sourceSliceCount; i++ {
-			// 转成切片的索引字段
-			field := reflect.StructField{
-				Name: parse.ToString(i),
+	if sourceMeta.Type == fastReflect.Slice {
+		sourceSliceCount = sourceMeta.ReflectValue.Len()
+		// item类型一致，直接赋值
+		if itemMeta.ReflectTypeString == sourceItemMeta.ReflectTypeString {
+			for i := 0; i < sourceSliceCount; i++ {
+				// 获取数组内的元素
+				sourceItemValue := sourceMeta.ReflectValue.Index(i)
+				newArr = reflect.Append(newArr, sourceItemValue)
 			}
-			valMeta := newStructField(reflect.New(targetItemType).Elem(), field, parent, false)
-			receiver.valueMeta = valMeta
-			receiver.assignField()
-			newArr = reflect.Append(newArr, receiver.ReflectValue)
-			// 这里改变了层级，需要恢复
-			receiver.valueMeta = parent
+		} else {
+			for i := 0; i < sourceSliceCount; i++ {
+				// 转成切片的索引字段
+				field := reflect.StructField{
+					Name: parse.ToString(i),
+				}
+				valMeta := newStructField(reflect.New(targetItemType).Elem(), field, parent, false)
+				receiver.valueMeta = valMeta
+				receiver.assignField()
+				newArr = reflect.Append(newArr, receiver.ReflectValue)
+				// 这里改变了层级，需要恢复
+				receiver.valueMeta = parent
+			}
 		}
 	}
 	receiver.valueMeta = parent
