@@ -24,7 +24,13 @@ func Array[T any](fromSlice any) []T {
 	sliArray := reflect.Indirect(reflect.ValueOf(fromSlice))
 	for i := 0; i < sliArray.Len(); i++ {
 		var tInfo T
-		_ = auto(sliArray.Index(i), &tInfo)
+		item := sliArray.Index(i)
+		// 基础类型
+		if types.IsGoBasicType(item.Type()) {
+			tInfo = (item.Interface()).(T)
+		} else {
+			_ = auto(item, &tInfo)
+		}
 		toSlice = append(toSlice, tInfo)
 	}
 	return toSlice
