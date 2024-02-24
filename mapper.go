@@ -37,9 +37,12 @@ func Array[T any](fromSlice any) []T {
 }
 
 // Single 单个转换
-func Single[TEntity any](object any) TEntity {
+func Single[TEntity any](object any, set ...func(*TEntity)) TEntity {
 	var toObj TEntity
 	_ = auto(reflect.ValueOf(object), &toObj)
+	if set != nil {
+		set[0](&toObj)
+	}
 	return toObj
 }
 
