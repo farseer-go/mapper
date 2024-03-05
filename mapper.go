@@ -63,12 +63,6 @@ func ToPageList[TEntity any](pageList any) collections.PageList[TEntity] {
 
 // ToList 支持：ListAny、List[xx]、[]xx转List[yy]
 func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
-	// 临时加入埋点
-	if container.IsRegister[trace.IManager]() {
-		traceHand := container.Resolve[trace.IManager]().TraceHand("mapper.ToList")
-		defer traceHand.End(nil)
-	}
-
 	pointerMeta := fastReflect.PointerOf(sliceOrListOrListAny)
 	switch pointerMeta.Type {
 	case fastReflect.Slice:
