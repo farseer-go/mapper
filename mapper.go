@@ -12,26 +12,29 @@ import (
 
 // Array 数组转换
 // fromSlice=数组切片
-func Array[T any](fromSlice any) []T {
+func Array[TEntity any](fromSlice any, set ...func(*TEntity,any)) []TEntity {
 	// 临时加入埋点
 	if container.IsRegister[trace.IManager]() {
 		traceHand := container.Resolve[trace.IManager]().TraceHand("mapper.Array")
 		defer traceHand.End(nil)
 	}
 
-	var toSlice []T
+	var toSlice []TEntity
 	//获取到具体的值信息
 	sliArray := reflect.Indirect(reflect.ValueOf(fromSlice))
 	for i := 0; i < sliArray.Len(); i++ {
-		var tInfo T
+		var toObj TEntity
 		item := sliArray.Index(i)
 		// 基础类型
 		if types.IsGoBasicType(item.Type()) {
-			tInfo = (item.Interface()).(T)
+			toObj = (item.Interface()).(TEntity)
 		} else {
-			_ = auto(item, &tInfo)
+			_ = auto(item, &toObj)
+			if set != nil {
+				set[0](&toObj,item.Interface())
+			}
 		}
-		toSlice = append(toSlice, tInfo)
+		toSlice = append(toSlice, toObj)
 	}
 	return toSlice
 }
@@ -62,12 +65,12 @@ func ToPageList[TEntity any](pageList any) collections.PageList[TEntity] {
 }
 
 // ToList 支持：ListAny、List[xx]、[]xx转List[yy]
-func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
+func ToList[TEntity any](sliceOrListOrListAny any, set ...func(*TEntity,any)) collections.List[TEntity] {
 	pointerMeta := fastReflect.PointerOf(sliceOrListOrListAny)
 	switch pointerMeta.Type {
 	case fastReflect.Slice:
 		//var arr []TEntity
-		arr := Array[TEntity](sliceOrListOrListAny)
+		arr := Array[TEntity](sliceOrListOrListAny,set...)
 		return collections.NewList[TEntity](arr...)
 	case fastReflect.List:
 		sliceOrListOrListAnyValue := reflect.ValueOf(sliceOrListOrListAny)
@@ -76,21 +79,9 @@ func ToList[TEntity any](sliceOrListOrListAny any) collections.List[TEntity] {
 		}
 
 		items := types.GetListToArray(sliceOrListOrListAnyValue)
-		arr := Array[TEntity](items)
+		arr := Array[TEntity](items,set...)
 		return collections.NewList[TEntity](arr...)
 	default:
-		//sliceOrListOrListAnyType := sliceOrListOrListAnyValue.Type()
-		//toArrayMethod := sliceOrListOrListAnyValue.MethodByName("ToArray")
-		//if !toArrayMethod.IsNil() {
-		//	//var arr []TEntity
-		//	arrValue := toArrayMethod.Call(nil)[0]
-		//	var items []TEntity
-		//	for i := 0; i < arrValue.Len(); i++ {
-		//		item := Single[TEntity](arrValue.Index(i).Interface())
-		//		items = append(items, item)
-		//	}
-		//	return collections.NewList[TEntity](items...)
-		//}
 	}
 
 	panic("sliceOrListOrListAny入参必须为切片或collections.List、collections.ListAny集合")
