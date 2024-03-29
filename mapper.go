@@ -58,9 +58,9 @@ func ToMap[K comparable, V any](entity any) map[K]V {
 
 // ToPageList 转换成core.PageList
 // fromSlice=数组切片
-func ToPageList[TEntity any](pageList any) collections.PageList[TEntity] {
+func ToPageList[TEntity any](pageList any, set ...func(*TEntity,any)) collections.PageList[TEntity] {
 	list, recordCount := types.GetPageList(pageList)
-	lst := ToList[TEntity](list)
+	lst := ToList[TEntity](list,set...)
 	return collections.NewPageList(lst, recordCount)
 }
 
