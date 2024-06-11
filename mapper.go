@@ -2,9 +2,7 @@ package mapper
 
 import (
 	"github.com/farseer-go/collections"
-	"github.com/farseer-go/fs/container"
 	"github.com/farseer-go/fs/fastReflect"
-	"github.com/farseer-go/fs/trace"
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
@@ -12,13 +10,7 @@ import (
 
 // Array 数组转换
 // fromSlice=数组切片
-func Array[TEntity any](fromSlice any, set ...func(*TEntity,any)) []TEntity {
-	// 临时加入埋点
-	if container.IsRegister[trace.IManager]() {
-		traceHand := container.Resolve[trace.IManager]().TraceHand("mapper.Array")
-		defer traceHand.End(nil)
-	}
-
+func Array[TEntity any](fromSlice any, set ...func(*TEntity, any)) []TEntity {
 	var toSlice []TEntity
 	//获取到具体的值信息
 	sliArray := reflect.Indirect(reflect.ValueOf(fromSlice))
@@ -31,7 +23,7 @@ func Array[TEntity any](fromSlice any, set ...func(*TEntity,any)) []TEntity {
 		} else {
 			_ = auto(item, &toObj)
 			if set != nil {
-				set[0](&toObj,item.Interface())
+				set[0](&toObj, item.Interface())
 			}
 		}
 		toSlice = append(toSlice, toObj)
@@ -58,19 +50,19 @@ func ToMap[K comparable, V any](entity any) map[K]V {
 
 // ToPageList 转换成core.PageList
 // fromSlice=数组切片
-func ToPageList[TEntity any](pageList any, set ...func(*TEntity,any)) collections.PageList[TEntity] {
+func ToPageList[TEntity any](pageList any, set ...func(*TEntity, any)) collections.PageList[TEntity] {
 	list, recordCount := types.GetPageList(pageList)
-	lst := ToList[TEntity](list,set...)
+	lst := ToList[TEntity](list, set...)
 	return collections.NewPageList(lst, recordCount)
 }
 
 // ToList 支持：ListAny、List[xx]、[]xx转List[yy]
-func ToList[TEntity any](sliceOrListOrListAny any, set ...func(*TEntity,any)) collections.List[TEntity] {
+func ToList[TEntity any](sliceOrListOrListAny any, set ...func(*TEntity, any)) collections.List[TEntity] {
 	pointerMeta := fastReflect.PointerOf(sliceOrListOrListAny)
 	switch pointerMeta.Type {
 	case fastReflect.Slice:
 		//var arr []TEntity
-		arr := Array[TEntity](sliceOrListOrListAny,set...)
+		arr := Array[TEntity](sliceOrListOrListAny, set...)
 		return collections.NewList[TEntity](arr...)
 	case fastReflect.List:
 		sliceOrListOrListAnyValue := reflect.ValueOf(sliceOrListOrListAny)
@@ -79,7 +71,7 @@ func ToList[TEntity any](sliceOrListOrListAny any, set ...func(*TEntity,any)) co
 		}
 
 		items := types.GetListToArray(sliceOrListOrListAnyValue)
-		arr := Array[TEntity](items,set...)
+		arr := Array[TEntity](items, set...)
 		return collections.NewList[TEntity](arr...)
 	default:
 	}
