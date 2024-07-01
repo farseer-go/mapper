@@ -8,7 +8,6 @@ import (
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
 	"reflect"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -330,9 +329,9 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 		if len(v.RegexPattern) == 0 {
 			continue
 		}
-		if v.Regexp == nil {
-			v.Regexp = regexp.MustCompile("^" + v.RegexPattern + "$")
-		}
+		//if v.Regexp == nil {
+		//	v.Regexp = regexp.MustCompile("^" + v.RegexPattern + "$")
+		//}
 		if v.Regexp.MatchString(receiver.Name) {
 			lst.Add(v)
 		}
