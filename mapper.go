@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"fmt"
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/fastReflect"
 	"github.com/farseer-go/fs/types"
@@ -15,6 +16,7 @@ func Array[TEntity any](fromSlice any, set ...func(*TEntity, any)) []TEntity {
 	//获取到具体的值信息
 	sliArray := reflect.Indirect(reflect.ValueOf(fromSlice))
 	for i := 0; i < sliArray.Len(); i++ {
+		fmt.Println(i)
 		var toObj TEntity
 		item := sliArray.Index(i)
 		// 基础类型

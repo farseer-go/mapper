@@ -5,6 +5,7 @@ import (
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"regexp"
+	"strings"
 	"sync"
 )
 
@@ -122,7 +123,7 @@ func (receiver *valueMeta) setRegex() {
 	}
 
 	// 将正则表达式缓存起来
-	if receiver.RegexPattern != "" {
+	if receiver.RegexPattern != "" && strings.Contains(receiver.RegexPattern, "|") {
 		expr := "^" + receiver.RegexPattern + "$"
 		if reg, isOk := cacheRegexp.Load(expr); isOk {
 			receiver.Regexp = reg.(*regexp.Regexp)

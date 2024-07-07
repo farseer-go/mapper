@@ -332,7 +332,8 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 		//if v.Regexp == nil {
 		//	v.Regexp = regexp.MustCompile("^" + v.RegexPattern + "$")
 		//}
-		if v.Regexp.MatchString(receiver.Name) {
+
+		if receiver.Name == v.Name || (v.Regexp != nil && v.Regexp.MatchString(receiver.Name)) {
 			lst.Add(v)
 		}
 	}
