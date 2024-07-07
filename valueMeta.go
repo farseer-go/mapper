@@ -5,6 +5,7 @@ import (
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"regexp"
+	"sync"
 )
 
 const (
@@ -13,7 +14,8 @@ const (
 	collectionsTypeString = "github.com/farseer-go/collections"
 )
 
-var cacheRegexp = make(map[string]*regexp.Regexp)
+// var cacheRegexp = make(sync.Map[string]*regexp.Regexp)
+var cacheRegexp = sync.Map{}
 
 // 元数据
 type valueMeta struct {
@@ -122,13 +124,13 @@ func (receiver *valueMeta) setRegex() {
 	// 将正则表达式缓存起来
 	if receiver.RegexPattern != "" {
 		expr := "^" + receiver.RegexPattern + "$"
-		if reg, isOk := cacheRegexp[expr]; isOk {
-			receiver.Regexp = reg
+		if reg, isOk := cacheRegexp.Load(expr); isOk {
+			receiver.Regexp = reg.(*regexp.Regexp)
 			return
 		}
 		// 正则编译
 		receiver.Regexp = regexp.MustCompile(expr)
-		cacheRegexp[expr] = receiver.Regexp
+		cacheRegexp.Store(expr, receiver.Regexp)
 	}
 }
 
