@@ -66,24 +66,23 @@ type UserVO4 struct {
 }
 
 type TaskDO struct {
-	ClusterVer map[int64]*SubMapEntity
-	Data       collections.Dictionary[string, string]
-	UserVO3    UserVO4
-	TimeInfo2  dateTime.DateTime
-	TimeInfo   time.Time
-	Time       string
-	Dec        decimal.Decimal
-	LstType    ListType
-	Client     ClientVO
-	List       collections.List[CountVO2]
-	List2      collections.List[CountVO]
-	Array      []UserVO2
-	ArrayStr   []string
-	Id         int
-	Status     State
-	UserId     int64
-	UserName   string
-
+	ClusterVer   map[int64]*SubMapEntity
+	Data         collections.Dictionary[string, string]
+	UserVO3      UserVO4
+	TimeInfo2    dateTime.DateTime
+	TimeInfo     time.Time
+	Time         string
+	Dec          decimal.Decimal
+	LstType      ListType
+	Client       ClientVO
+	List         collections.List[CountVO2]
+	List2        collections.List[CountVO]
+	Array        []UserVO2
+	ArrayStr     []string
+	Id           int
+	Status       State
+	UserId       int64
+	UserName     string
 	CreateAt     time.Time
 	IsEnable     bool
 	IsEnableStr  bool

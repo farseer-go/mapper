@@ -10,12 +10,9 @@ import (
 )
 
 const (
-	mapSplitTag           = ":-:"
-	anonymousSplitTag     = "" // :anonymous:
-	collectionsTypeString = "github.com/farseer-go/collections"
+	anonymousSplitTag = "" // :anonymous:
 )
 
-// var cacheRegexp = make(sync.Map[string]*regexp.Regexp)
 var cacheRegexp = sync.Map{}
 
 // 元数据

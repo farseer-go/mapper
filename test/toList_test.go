@@ -7,15 +7,6 @@ import (
 	"testing"
 )
 
-type po struct {
-	Name string
-	Age  int
-}
-type do struct {
-	Name string
-	Age  int
-}
-
 func TestToList(t *testing.T) {
 	arrDto := []TaskDTO{{
 		Id:         1,

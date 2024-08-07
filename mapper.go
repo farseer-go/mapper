@@ -61,7 +61,6 @@ func ToList[TEntity any](sliceOrListOrListAny any, set ...func(*TEntity, any)) c
 	pointerMeta := fastReflect.PointerOf(sliceOrListOrListAny)
 	switch pointerMeta.Type {
 	case fastReflect.Slice:
-		//var arr []TEntity
 		arr := Array[TEntity](sliceOrListOrListAny, set...)
 		return collections.NewList[TEntity](arr...)
 	case fastReflect.List:
