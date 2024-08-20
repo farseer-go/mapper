@@ -4,6 +4,12 @@ import (
 	"reflect"
 )
 
+// Auto 对象相互转换
+func Auto(from, to any) error {
+	targetVal := reflect.ValueOf(from)
+	return auto(targetVal, to, targetVal.Type().Implements(actionMapperInitAddr))
+}
+
 // 对象相互转换
 func auto(from reflect.Value, target any, isImplementsActionMapperInitAddr bool) error {
 	targetVal := reflect.ValueOf(target).Elem()
