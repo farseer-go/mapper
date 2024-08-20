@@ -1,12 +1,18 @@
 package mapper
 
 import (
+	"fmt"
 	"reflect"
 )
 
 // Auto 对象相互转换
 func Auto(from, to any) error {
 	targetVal := reflect.ValueOf(from)
+	// 判断是否指针 外部需保证为指针类型
+	if targetVal.Kind() != reflect.Pointer {
+		return fmt.Errorf("target must be a struct pointer")
+	}
+
 	return auto(targetVal, to, targetVal.Type().Implements(actionMapperInitAddr))
 }
 
