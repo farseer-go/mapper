@@ -25,6 +25,7 @@ func TestAnonymousNameMatch(t *testing.T) {
 	type arr2 struct {
 		Id int
 		User2VO
+		UserName string
 	}
 
 	arrDto := []arr1{{
@@ -40,6 +41,7 @@ func TestAnonymousNameMatch(t *testing.T) {
 
 	for i := 0; i < len(arrDto); i++ {
 		assert.Equal(t, arrDto[i].User.Name, arrDO[i].UserName)
-		assert.Equal(t, arrDto[i].User.Id, arrDO[i].UserId)
+		assert.Equal(t, arrDto[i].User.Name, arrDO[i].User2VO.UserName)
+		assert.Equal(t, arrDto[i].User.Id, arrDO[i].User2VO.UserId)
 	}
 }

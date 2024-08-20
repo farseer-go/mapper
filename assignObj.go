@@ -337,10 +337,10 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 	//		return &meta
 	//	}
 	//}
-	for i, meta := range receiver.sourceSlice {
+	for _, meta := range receiver.sourceSlice {
 		if receiver.FullName == meta.FullName {
 			// 移除数据源
-			receiver.sourceSlice = append((receiver.sourceSlice)[:i], (receiver.sourceSlice)[i+1:]...)
+			//receiver.sourceSlice = append((receiver.sourceSlice)[:i], (receiver.sourceSlice)[i+1:]...)
 			return &meta
 		}
 	}
