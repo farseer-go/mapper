@@ -2,20 +2,17 @@ package mapper
 
 import (
 	"github.com/farseer-go/collections"
-	"github.com/farseer-go/fs/core"
 	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
 )
-
-var actionMapperInitAddr = reflect.TypeOf((*core.IMapperInit)(nil)).Elem()
 
 // Single 单个转换
 func Single[TEntity any](object any, set ...func(*TEntity)) TEntity {
 	itemType := reflect.ValueOf(object)
 
 	var toObj TEntity
-	_ = auto(itemType, &toObj, itemType.Type().Implements(actionMapperInitAddr))
+	_ = auto(itemType, &toObj)
 	if set != nil {
 		set[0](&toObj)
 	}
@@ -60,13 +57,10 @@ func arrayByReflectValue[TEntity any](sliArray reflect.Value, set ...func(*TEnti
 	var toSlice []TEntity
 	// 元素是否为基础类型
 	isGoBasicType := false
-	// 元素是否实现了MapperInit
-	isImplementsActionMapperInitAddr := false
 	arrCount := sliArray.Len()
 	if arrCount > 0 {
 		itemType := sliArray.Index(0).Type()
 		isGoBasicType = types.IsGoBasicType(itemType)
-		isImplementsActionMapperInitAddr = itemType.Implements(actionMapperInitAddr)
 	}
 
 	// 基础类型
@@ -87,7 +81,7 @@ func arrayByReflectValue[TEntity any](sliArray reflect.Value, set ...func(*TEnti
 		// BenchmarkSample-12    	   33852	     33642 ns/op	     264 B/op	       7 allocs/op
 		item := sliArray.Index(i)
 		// 基础类型
-		_ = auto(item, &toObj, isImplementsActionMapperInitAddr)
+		_ = auto(item, &toObj)
 		if set != nil {
 			set[0](&toObj, item.Interface())
 		}

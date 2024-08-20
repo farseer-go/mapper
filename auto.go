@@ -6,18 +6,18 @@ import (
 )
 
 // Auto 对象相互转换
-func Auto(from, to any) error {
-	targetVal := reflect.ValueOf(from)
+func Auto(from, target any) error {
+	fromVal := reflect.ValueOf(from)
 	// 判断是否指针 外部需保证为指针类型
-	if targetVal.Kind() != reflect.Pointer {
+	if reflect.ValueOf(target).Kind() != reflect.Pointer {
 		return fmt.Errorf("target must be a struct pointer")
 	}
 
-	return auto(targetVal, to, targetVal.Type().Implements(actionMapperInitAddr))
+	return auto(fromVal, target)
 }
 
 // 对象相互转换
-func auto(from reflect.Value, target any, isImplementsActionMapperInitAddr bool) error {
+func auto(from reflect.Value, target any) error {
 	targetVal := reflect.ValueOf(target).Elem()
 
 	// 判断是否指针 外部需保证为指针类型
@@ -30,12 +30,6 @@ func auto(from reflect.Value, target any, isImplementsActionMapperInitAddr bool)
 	// BenchmarkSample2-12    	      32	  36,675612 ns/op	39772403 B/op	  212752 allocs/op
 	// BenchmarkSample2-12    	      50	  20,069469 ns/op	37280084 B/op	   80000 allocs/op
 	sourceSlice := fAnalysis.entry(from)
-
-	// 倒序
-	//var sourceSliceDesc []valueMeta
-	//for i := len(sourceSlice) - 1; i >= 0; i-- {
-	//	sourceSliceDesc = append(sourceSliceDesc, sourceSlice[i])
-	//}
 
 	// 赋值
 	var tAssign assignObj
