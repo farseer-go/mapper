@@ -4,34 +4,34 @@ import (
 	"github.com/farseer-go/fs/fastReflect"
 	"github.com/farseer-go/fs/types"
 	"reflect"
-	"regexp"
 	"strings"
-	"sync"
 )
-
-const (
-	anonymousSplitTag = "" // :anonymous:
-)
-
-var cacheRegexp = sync.Map{}
 
 // 元数据
 type valueMeta struct {
-	fastReflect.PointerMeta
-	Parent       *valueMeta     // 上级元数据
-	ParentName   string         // 上级字段名称
-	Name         string         // 字段名称（由ParentName + 当前名称）
-	FieldName    string         // 字段名称（StructField）
-	useRegex     bool           // 使用了正则
-	Regexp       *regexp.Regexp // 正则
-	RegexPattern string         // 字段名称匹配规则
-	ReflectValue reflect.Value  // 值
-	IsNil        bool           // 是否为nil
-	IsAnonymous  bool           // 是否为内嵌类型
-	IsIgnore     bool           // 是否为忽略字段
-	Level        int            // 当前解析的层数（默认为第0层）
+	fastReflect.PointerMeta // 类型
+	//Id                      uint64         // 唯一ID
+	Parent       *valueMeta    // 上级元数据
+	FullName     string        // 字段名称（由ParentName + 当前名称）
+	FieldName    string        // 字段名称（StructField）
+	ReflectValue reflect.Value // 值
+	IsNil        bool          // 是否为nil
+	IsAnonymous  bool          // 是否为内嵌类型
+	IsIgnore     bool          // 是否为忽略字段
+	Level        int           // 当前解析的层数（默认为第0层）
 }
 
+// newMeta 得到类型的元数据
+//
+//	func newMetaVal(fromVal reflect.Value) valueMeta {
+//		return valueMeta{
+//			//Id:           1,
+//			ReflectValue: fromVal,
+//			IsNil:        false,
+//			PointerMeta:  fastReflect.PointerOfValue(fromVal),
+//		}
+//	}
+//
 // newMeta 得到类型的元数据
 func newMetaVal(value reflect.Value) *valueMeta {
 	meta := &valueMeta{
@@ -43,18 +43,19 @@ func newMetaVal(value reflect.Value) *valueMeta {
 }
 
 // newStructField 创建子元数据
-func newStructField(value reflect.Value, field reflect.StructField, parent *valueMeta, isBuildRegex bool) *valueMeta {
-	mt := &valueMeta{
+func newStructField(reflectValue reflect.Value, field reflect.StructField, parent *valueMeta) valueMeta {
+	mt := valueMeta{
+		//		Id:          parent.Id*10 + uint64(field.Index[0]),
 		Parent:      parent,
-		ParentName:  parent.Name,
 		Level:       parent.Level + 1,
 		IsAnonymous: field.Anonymous,
 		FieldName:   field.Name,
-		useRegex:    parent.useRegex,
 	}
-	mt.setReflectValue(value)
+	// 4ms
+	mt.setReflectValue(reflectValue)
+	// 4ms
 	mt.PointerMeta = fastReflect.PointerOfValue(mt.ReflectValue)
-
+	//return valueMeta{}
 	// 定义的标签
 	//tags := strings.Split(field.Tag.Get("mapper"), ";")
 	//for _, tag := range tags {
@@ -64,84 +65,76 @@ func newStructField(value reflect.Value, field reflect.StructField, parent *valu
 	//	}
 	//}
 
+	// 1ms
 	switch parent.Type {
 	case fastReflect.Slice:
 		if len(field.Name) > 0 {
-			mt.Name = parent.Name + "[" + field.Name + "]"
-			mt.useRegex = isBuildRegex
+			//mt.FullName = parent.FullName + "[" + field.Name + "]"
+			var strBuilder strings.Builder
+			strBuilder.WriteString(parent.FullName)
+			strBuilder.WriteString("[")
+			strBuilder.WriteString(field.Name)
+			strBuilder.WriteString("]")
+			mt.FullName = strBuilder.String()
 		} else {
-			mt.Name = parent.Name
+			mt.FullName = parent.FullName
 		}
 
 	case fastReflect.Map, fastReflect.Dic:
 		if len(field.Name) > 0 {
-			mt.Name = parent.Name + "{" + field.Name + "}"
-			mt.useRegex = isBuildRegex
+			mt.FullName = parent.FullName + field.Name
+			//mt.FullName = parent.FullName + "{" + field.Name + "}"
+			//if parent.FullName != "" {
+			//	var strBuilder strings.Builder
+			//	strBuilder.WriteString(parent.FullName)
+			//	strBuilder.WriteString("{")
+			//	strBuilder.WriteString(field.Name)
+			//	strBuilder.WriteString("}")
+			//	mt.FullName = strBuilder.String()
+			//} else {
+			//	mt.FullName = parent.FullName + field.Name
+			//}
 		} else {
-			mt.Name = parent.Name
+			mt.FullName = parent.FullName
 		}
 	default:
 		// 内嵌字段类型的Name为类型名称，这里用标记代替
 		if mt.IsAnonymous {
-			mt.Name = parent.Name + anonymousSplitTag
+			//mt.FullName = parent.FullName + anonymousSplitTag
+			mt.FullName = parent.FullName
 		} else {
-			mt.Name = parent.Name + field.Name
+			mt.FullName = parent.FullName + field.Name
 		}
 	}
 
-	// 正则
-	if mt.useRegex {
-		mt.setRegex()
-	}
 	return mt
 }
 
-// 设置正则规则
-func (receiver *valueMeta) setRegex() {
-	switch receiver.Parent.Type {
-	case fastReflect.Slice:
-		if len(receiver.FieldName) > 0 {
-			receiver.RegexPattern = receiver.Parent.RegexPattern + "[" + receiver.FieldName + "]"
-		} else {
-			receiver.RegexPattern = receiver.Name
+func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
+	kind := reflectValue.Kind()
+	if kind == reflect.Pointer {
+		if receiver.IsNil = reflectValue.IsNil(); !receiver.IsNil {
+			reflectValue = reflectValue.Elem()
+			kind = reflectValue.Kind()
 		}
-	case fastReflect.Map, fastReflect.Dic:
-		if len(receiver.FieldName) > 0 {
-			receiver.RegexPattern = receiver.Parent.RegexPattern + "(\\{|)" + receiver.FieldName + "(\\}|)"
-		} else {
-			receiver.RegexPattern = receiver.Name
+	}
+	switch kind {
+	case reflect.Pointer:
+		if !receiver.IsNil {
+			receiver.IsNil = reflectValue.IsNil()
+		}
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Slice:
+		receiver.IsNil = reflectValue.IsNil()
+	case reflect.Interface:
+		receiver.IsNil = reflectValue.IsNil()
+		// 取真实的类型
+		if !receiver.IsNil { // && receiver.CanInterface
+			reflectValue = reflectValue.Elem()
 		}
 	default:
-		if receiver.IsAnonymous {
-			receiver.RegexPattern = receiver.Parent.RegexPattern + anonymousSplitTag
-		} else {
-			receiver.RegexPattern = receiver.Parent.RegexPattern + receiver.FieldName
-		}
+		receiver.IsNil = false
 	}
 
-	// 将正则表达式缓存起来
-	if receiver.RegexPattern != "" && strings.Contains(receiver.RegexPattern, "|") {
-		expr := "^" + receiver.RegexPattern + "$"
-		if reg, isOk := cacheRegexp.Load(expr); isOk {
-			receiver.Regexp = reg.(*regexp.Regexp)
-			return
-		}
-		// 正则编译
-		receiver.Regexp = regexp.MustCompile(expr)
-		cacheRegexp.Store(expr, receiver.Regexp)
-	}
-}
-
-func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
-	if reflectValue.Kind() == reflect.Pointer && !reflectValue.IsNil() {
-		reflectValue = reflectValue.Elem()
-	}
-	receiver.IsNil = types.IsNil(reflectValue)
-
-	// 取真实的类型
-	if reflectValue.Kind() == reflect.Interface && !receiver.IsNil { // && receiver.CanInterface
-		reflectValue = reflectValue.Elem()
-	}
 	receiver.ReflectValue = reflectValue
 }
 
@@ -155,19 +148,24 @@ func (receiver *valueMeta) NewReflectValue() {
 	}
 
 	if types.IsNil(receiver.ReflectValue) {
-		if receiver.IsAddr {
-			receiver.ReflectValue.Set(receiver.ZeroReflectValue)
-		} else {
-			receiver.ReflectValue.Set(receiver.ZeroReflectValueElem)
-		}
-		//switch receiver.Type {
-		//case fastReflect.Slice:
-		//	//receiver.ReflectValue.Set(reflect.MakeSlice(receiver.ReflectType, 0, 0))
-		//case fastReflect.Map:
-		//	//receiver.ReflectValue.Set(reflect.MakeMap(receiver.ReflectType))
-		//default:
-		//	//receiver.ReflectValue.Set(reflect.New(receiver.ReflectType))
+		// 不能使用此缓存的对象，会出现目标结构有同样结构体类型时，出现同样的指针地址
+		//if receiver.IsAddr {
+		//	receiver.ReflectValue.Set(receiver.ZeroReflectValue)
+		//} else {
+		//	receiver.ReflectValue.Set(receiver.ZeroReflectValueElem)
 		//}
+		switch receiver.Type {
+		case fastReflect.Slice:
+			receiver.ReflectValue.Set(reflect.MakeSlice(receiver.ReflectType, 0, 0))
+		case fastReflect.Map:
+			receiver.ReflectValue.Set(reflect.MakeMap(receiver.ReflectType))
+		default:
+			if receiver.IsAddr {
+				receiver.ReflectValue.Set(reflect.New(receiver.ReflectType))
+			} else {
+				receiver.ReflectValue.Set(reflect.New(receiver.ReflectType).Elem())
+			}
+		}
 		receiver.setReflectValue(reflect.Indirect(receiver.ReflectValue))
 	}
 }

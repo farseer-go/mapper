@@ -1,64 +1,42 @@
 package mapper
 
 import (
-	"fmt"
-	"github.com/farseer-go/fs/core"
 	"reflect"
 )
 
-// Auto 对象相互转换
-func Auto(from, to any) error {
-	return auto(reflect.ValueOf(from), to)
-}
+// 对象相互转换
+func auto(from reflect.Value, target any, isImplementsActionMapperInitAddr bool) error {
+	targetVal := reflect.ValueOf(target).Elem()
 
-// Auto2 对象相互转换
-func auto(from reflect.Value, to any) error {
-	targetVal := reflect.ValueOf(to)
-	//判断是否指针
-	if targetVal.Kind() != reflect.Pointer {
-		return fmt.Errorf("toDTO must be a struct pointer")
-	}
-
-	// 转换完成之后 执行初始化MapperInit方法
-	defer execInitFunc(targetVal)
-
-	sourceMap := make(map[string]*valueMeta)
+	// 判断是否指针 外部需保证为指针类型
+	//if targetVal.Kind() != reflect.Pointer {
+	//	return fmt.Errorf("target must be a struct pointer")
+	//}
 
 	// 遍历来源对象
-	var fAnalysis AnalysisOjb
-	fAnalysis.Analysis(from, sourceMap)
-	
+	var fAnalysis analysisOjb
+	// BenchmarkSample2-12    	      32	  36,675612 ns/op	39772403 B/op	  212752 allocs/op
+	// BenchmarkSample2-12    	      50	  20,069469 ns/op	37280084 B/op	   80000 allocs/op
+	sourceSlice := fAnalysis.entry(from)
+
+	// 倒序
+	//var sourceSliceDesc []valueMeta
+	//for i := len(sourceSlice) - 1; i >= 0; i-- {
+	//	sourceSliceDesc = append(sourceSliceDesc, sourceSlice[i])
+	//}
+
 	// 赋值
 	var tAssign assignObj
-	return tAssign.assignment(targetVal, sourceMap)
-}
+	err := tAssign.entry(targetVal, from, sourceSlice)
 
-// StructToMap 结构转map
-func StructToMap(fromObjPtr any, dic any) error {
-	fsVal := reflect.Indirect(reflect.ValueOf(fromObjPtr))
-	dicValue := reflect.ValueOf(dic)
-	for i := 0; i < fsVal.NumField(); i++ {
-		itemName := fsVal.Type().Field(i).Name
-		itemValue := fsVal.Field(i)
-		if fsVal.Type().Field(i).Type.Kind() != reflect.Interface {
-			dicValue.SetMapIndex(reflect.ValueOf(itemName), itemValue)
+	/*
+		// 转换完成之后 执行初始化MapperInit方法
+		if err == nil && isImplementsActionMapperInitAddr {
+			// BenchmarkSample-12    	    2606	    460037 ns/op	  960265 B/op	   10007 allocs/op
+			targetVal.MethodByName("MapperInit").Call(nil)
+			// BenchmarkSample-12    	    2491	    459648 ns/op	  960268 B/op	   10007 allocs/op
+			//types.ExecuteMapperInit(targetVal)
 		}
-	}
-	return nil
-}
-
-var actionMapperInitAddr = reflect.TypeOf((*core.IMapperInit)(nil)).Elem()
-var actionMapperInit = reflect.TypeOf((core.IMapperInit)(nil))
-
-// execInitFunc map转换完成之后执行 初始化方法
-func execInitFunc(targetFieldValue reflect.Value) {
-	// 是否实现了IMapperInit
-	if actionMapperInitAddr != nil {
-		isImplActionMapperInit := targetFieldValue.Type().Implements(actionMapperInitAddr)
-		if isImplActionMapperInit {
-			//执行方法
-			targetFieldValue.MethodByName("MapperInit").Call([]reflect.Value{})
-			return
-		}
-	}
+	*/
+	return err
 }

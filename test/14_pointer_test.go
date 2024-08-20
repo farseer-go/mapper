@@ -7,30 +7,29 @@ import (
 	"testing"
 )
 
-type TestPointerDO struct {
-	Exception1 *trace.ExceptionStack
-	Exception2 *trace.ExceptionStack
-	Exception3 trace.ExceptionStack
-	Exception4 *trace.ExceptionStack
-	Exception5 *ExceptionStack
-}
-type TestPointerPO struct {
-	Exception1 *trace.ExceptionStack
-	Exception2 trace.ExceptionStack
-	Exception3 *trace.ExceptionStack
-	Exception4 *ExceptionStack
-	Exception5 *trace.ExceptionStack
-}
-type ExceptionStack struct {
-	ExceptionCallFile     string // 调用者文件路径
-	ExceptionCallLine     int    // 调用者行号
-	ExceptionCallFuncName string // 调用者函数名称
-	ExceptionIsException  bool   // 是否执行异常
-	ExceptionMessage      string // 异常信息
-}
-
 func TestPointer(t *testing.T) {
-	do := TestPointerDO{
+	type ExceptionStack struct {
+		ExceptionCallFile     string // 调用者文件路径
+		ExceptionCallLine     int    // 调用者行号
+		ExceptionCallFuncName string // 调用者函数名称
+		ExceptionIsException  bool   // 是否执行异常
+		ExceptionMessage      string // 异常信息
+	}
+	type s1 struct {
+		Exception1 *trace.ExceptionStack
+		Exception2 *trace.ExceptionStack
+		Exception3 trace.ExceptionStack
+		Exception4 *trace.ExceptionStack
+		Exception5 *ExceptionStack
+	}
+	type s2 struct {
+		Exception1 *trace.ExceptionStack
+		Exception2 trace.ExceptionStack
+		Exception3 *trace.ExceptionStack
+		Exception4 *ExceptionStack
+		Exception5 *trace.ExceptionStack
+	}
+	do := s1{
 		Exception1: &trace.ExceptionStack{
 			ExceptionCallFile:     "1",
 			ExceptionCallLine:     2,
@@ -39,22 +38,22 @@ func TestPointer(t *testing.T) {
 			ExceptionMessage:      "4",
 		},
 		Exception2: &trace.ExceptionStack{
-			ExceptionCallFile:     "1",
-			ExceptionCallLine:     2,
-			ExceptionCallFuncName: "3",
+			ExceptionCallFile:     "11",
+			ExceptionCallLine:     22,
+			ExceptionCallFuncName: "33",
 			ExceptionIsException:  true,
-			ExceptionMessage:      "4",
+			ExceptionMessage:      "44",
 		},
 		Exception3: trace.ExceptionStack{
-			ExceptionCallFile:     "1",
-			ExceptionCallLine:     2,
-			ExceptionCallFuncName: "3",
+			ExceptionCallFile:     "111",
+			ExceptionCallLine:     222,
+			ExceptionCallFuncName: "333",
 			ExceptionIsException:  true,
-			ExceptionMessage:      "4",
+			ExceptionMessage:      "444",
 		},
 		Exception4: nil,
 	}
-	po := mapper.Single[TestPointerPO](do)
+	po := mapper.Single[s2](do)
 
 	assert.Equal(t, do.Exception1.ExceptionCallFile, po.Exception1.ExceptionCallFile)
 	assert.Equal(t, do.Exception1.ExceptionCallLine, po.Exception1.ExceptionCallLine)

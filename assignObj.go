@@ -2,7 +2,6 @@ package mapper
 
 import (
 	"fmt"
-	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/dateTime"
 	"github.com/farseer-go/fs/fastReflect"
 	"github.com/farseer-go/fs/parse"
@@ -12,17 +11,22 @@ import (
 	"time"
 )
 
+// 解析要赋值的对象
 type assignObj struct {
-	*valueMeta // 当前元数据
-	sourceMap  map[string]*valueMeta
+	valueMeta               // 当前元数据
+	sourceSlice []valueMeta // 分析后的结果
 }
 
-// 赋值操作
-func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[string]*valueMeta) error {
-	// 获取指针之后的值
-	metaVal := newMetaVal(targetVal)
-	receiver.valueMeta = metaVal
-	receiver.sourceMap = sourceMap
+// entry 赋值操作
+func (receiver *assignObj) entry(targetVal reflect.Value, fromVal reflect.Value, sourceSlice []valueMeta) error {
+	receiver.sourceSlice = sourceSlice
+	// 初始化分析对象
+	receiver.valueMeta = valueMeta{
+		//Id:           1,
+		IsNil:        false,
+		ReflectValue: targetVal,
+		PointerMeta:  fastReflect.PointerOfValue(targetVal),
+	}
 
 	if receiver.valueMeta.Type != fastReflect.Struct {
 		return fmt.Errorf("mapper赋值类型，必须是Struct：%s", receiver.valueMeta.ReflectTypeString)
@@ -35,6 +39,7 @@ func (receiver *assignObj) assignment(targetVal reflect.Value, sourceMap map[str
 
 // 赋值结构体
 func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
+	// BenchmarkSample-12    	     902	   1212457 ns/op	  960268 B/op	   10007 allocs/op
 	// 目标是否为指针
 	// 指针类型，只有在源值存在的情况下，才赋值。否则跳过
 	if sourceMeta != nil || (receiver.valueMeta.IsAddr && receiver.valueMeta.IsNil) {
@@ -42,6 +47,7 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 		// 所以这里必须使用去指针的原始类型：receiver.RealReflectType
 		// 结构内字段转换 赋值。（目标字段是指针结构体，需要先初始化）
 
+		// 当目标A.B 为指针时，如果找到源值的A.BC
 		// 满足receiver.valueMeta.IsAddr && receiver.valueMeta.IsNil时也要执行，否则遍历时会异常
 		receiver.NewReflectValue()
 	}
@@ -49,8 +55,9 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
 	for _, i := range parent.ExportedField {
 		numFieldValue := parent.ReflectValue.Field(i)
-		// 先分析元数据
-		valMeta := newStructField(numFieldValue, parent.StructField[i], parent, false)
+		// 先分析元数据 8ms
+		// BenchmarkSample2-12    	      33	  30,986279 ns/op	39680280 B/op	  100001 allocs/op
+		valMeta := newStructField(numFieldValue, parent.StructField[i], &parent)
 		receiver.valueMeta = valMeta
 		receiver.assignField()
 	}
@@ -63,6 +70,8 @@ func (receiver *assignObj) assignField() {
 	if receiver.IsIgnore {
 		return
 	}
+
+	// 7ms
 	sourceValue := receiver.getSourceValue()
 	if sourceValue != nil && sourceValue.Type == fastReflect.Invalid {
 		return
@@ -70,7 +79,8 @@ func (receiver *assignObj) assignField() {
 
 	// 源值为nil，且不是结构、字典时，不需要继续往下走。没有意义
 	// 结构体跳过，因为需要支持：Client.Id = ClientId 这种格式 && receiver.Type != Struct
-	if sourceValue == nil && !receiver.IsAnonymous && (receiver.Type != fastReflect.Struct || !receiver.ContainsSourceKey()) { //  && (receiver.Type != Struct && receiver.Type != Map && receiver.Type != Dic)
+	if sourceValue == nil && !receiver.IsAnonymous && (receiver.Type != fastReflect.Struct || !receiver.ContainsSourceKey()) { //
+		//  && (receiver.Type != Struct && receiver.Type != Map && receiver.Type != Dic)
 		return
 	}
 
@@ -157,7 +167,7 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	//itemType := types.GetListItemType(receiver.ReflectType)
 	// 组装[]T 元数据
 	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
-	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, receiver.valueMeta, false)
+	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, &receiver.valueMeta)
 	receiver.valueMeta = valMeta
 
 	// 赋值组装的字段
@@ -184,7 +194,7 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 	//itemType := types.GetListItemType(receiver.ReflectType)
 	// 组装[]T 元数据
 	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
-	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, receiver.valueMeta, false)
+	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, &receiver.valueMeta)
 	receiver.valueMeta = valMeta
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
@@ -235,7 +245,7 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 				field := reflect.StructField{
 					Name: parse.ToString(i),
 				}
-				valMeta := newStructField(reflect.New(targetItemType).Elem(), field, parent, false)
+				valMeta := newStructField(reflect.New(targetItemType).Elem(), field, &parent)
 				receiver.valueMeta = valMeta
 				receiver.assignField()
 				newArr = reflect.Append(newArr, receiver.ReflectValue)
@@ -273,7 +283,8 @@ func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 			mapKey := iter.Key()
 			field := reflect.StructField{Name: parse.ToString(mapKey.Interface())}
 			// 先分析元数据
-			receiver.valueMeta = newStructField(value, field, parent, false)
+			valMeta := newStructField(value, field, &parent)
+			receiver.valueMeta = valMeta
 			receiver.assignField()
 
 			// 如果左边的item是指针，则要转成指针类型
@@ -298,7 +309,7 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	//newMap := receiver.ZeroReflectValue
 	// 组装map[K]V 元数据
 	//receiver.valueMeta = newMetaVal(newMap, receiver.valueMeta)
-	valMeta := newStructField(newMap, reflect.StructField{}, receiver.valueMeta, false)
+	valMeta := newStructField(newMap, reflect.StructField{}, &receiver.valueMeta)
 	receiver.valueMeta = valMeta
 	// 赋值组装的字段
 	receiver.assembleMap(sourceMeta)
@@ -311,44 +322,35 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	receiver.ReflectValue.Set(newDictionary.Elem()) // newDictionary是指针类型，所以要取址
 }
 
+// 查找源字段的值
 func (receiver *assignObj) getSourceValue() *valueMeta {
-	if receiver.Name == "" {
+	if receiver.FullName == "" {
 		return nil
 	}
-
-	// 找到源字段
-	sourceValue := receiver.sourceMap[receiver.Name]
-	if sourceValue != nil {
-		return sourceValue
-	}
-
-	// 使用正则
-	lst := collections.NewList[*valueMeta]()
-	for _, v := range receiver.sourceMap {
-		// 跳过没有设置正则的源
-		if len(v.RegexPattern) == 0 {
-			continue
-		}
-		//if v.Regexp == nil {
-		//	v.Regexp = regexp.MustCompile("^" + v.RegexPattern + "$")
-		//}
-
-		if receiver.Name == v.Name || (v.Regexp != nil && v.Regexp.MatchString(receiver.Name)) {
-			lst.Add(v)
+	// 先使用完全匹配的方式查找
+	// 这里必须使用倒序，因为在List类型会出现两个一样的对象。但前者是List类型，后者是切片类型。这里需要切片类型的对象
+	//for i := len(receiver.sourceSlice) - 1; i >= 0; i-- {
+	//	meta := receiver.sourceSlice[i]
+	//	if receiver.FullName == meta.FullName {
+	//		// 移除数据源
+	//		receiver.sourceSlice = append((receiver.sourceSlice)[:i], (receiver.sourceSlice)[i+1:]...)
+	//		return &meta
+	//	}
+	//}
+	for i, meta := range receiver.sourceSlice {
+		if receiver.FullName == meta.FullName {
+			// 移除数据源
+			receiver.sourceSlice = append((receiver.sourceSlice)[:i], (receiver.sourceSlice)[i+1:]...)
+			return &meta
 		}
 	}
-
-	sourceValue = lst.OrderByDescending(func(item *valueMeta) any {
-		return len(item.Name)
-	}).First()
-
-	return sourceValue
+	return nil
 }
 
-// ContainsSourceKey 因为需要支持：Client.Id = ClientId 这种格式，所以使用包含的方式来判断
+// ContainsSourceKey 因为需要支持：当目标字段Client为指定类型时，源值有：ClientId字段，则要支持Client.Id = ClientId 这种格式，所以使用包含的方式来判断
 func (receiver *assignObj) ContainsSourceKey() bool {
-	for k := range receiver.sourceMap {
-		if strings.Contains(k, receiver.Name) {
+	for _, k := range receiver.sourceSlice {
+		if strings.HasPrefix(k.FullName, receiver.FullName) {
 			return true
 		}
 	}

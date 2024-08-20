@@ -27,6 +27,7 @@ type TraceDetailDatabasePO struct {
 	RowsAffected      int64  `gorm:"not null;default:0;comment:影响行数"`
 }
 
+// 测试匿名类型
 func TestAnonymous(t *testing.T) {
 	po := TraceDetailDatabasePO{
 		BaseTraceDetailPO: BaseTraceDetailPO{

@@ -9,46 +9,58 @@ import (
 	"strconv"
 )
 
-type AnalysisOjb struct {
-	*valueMeta                       // 当前元数据
-	sourceMap  map[string]*valueMeta // 分析后的结果
+type analysisOjb struct {
+	source []valueMeta // 分析后的结果
+	//sourceMap map[string]*valueMeta // 分析后的结果
+	fromMeta valueMeta // 当前元数据
 }
 
-// Analysis 分析入口
-func (receiver *AnalysisOjb) Analysis(fromValue reflect.Value, sourceMap map[string]*valueMeta) {
+// init 初始化分析对象
+func (receiver *analysisOjb) entry(fromVal reflect.Value) []valueMeta {
 	// 定义存储map ,保存解析出来的字段和值
-	receiver.sourceMap = sourceMap
+	//receiver.sourceMap = sourceMap
+	// 定义存储map ,保存解析出来的字段和值
+	receiver.fromMeta = valueMeta{
+		//Id:           1,
+		ReflectValue: fromVal,
+		IsNil:        false,
+		//PointerMeta:  fastReflect.PointerOfValue(fromVal),
+	}
+	receiver.fromMeta.setReflectValue(fromVal)
+	receiver.fromMeta.PointerMeta = fastReflect.PointerOfValue(receiver.fromMeta.ReflectValue)
 
-	valMeta := newMetaVal(fromValue)
-	receiver.valueMeta = valMeta
-
-	switch receiver.Type {
+	switch receiver.fromMeta.Type {
 	case fastReflect.Map:
 		receiver.analysisMap()
 	case fastReflect.Struct:
 		receiver.analysisStruct()
 	default:
-		flog.Warningf("mapper未知的类型解析：%s", receiver.ReflectTypeString)
+		flog.Warningf("mapper未知的类型解析：%s", receiver.fromMeta.ReflectTypeString)
 	}
+	return receiver.source
 }
 
 // 解析结构体
-func (receiver *AnalysisOjb) analysisStruct() {
-	parent := receiver.valueMeta
+func (receiver *analysisOjb) analysisStruct() {
+	parent := receiver.fromMeta
 	// 结构体
 	for _, i := range parent.ExportedField {
 		numFieldValue := parent.ReflectValue.Field(i)
 		// 先分析元数据
-		valMeta := newStructField(numFieldValue, parent.StructField[i], parent, true)
-		receiver.valueMeta = valMeta
+		// 10ms
+		// BenchmarkSample2-12    	      88	  13,093350 ns/op	 3840005 B/op	   40000 allocs/op
+		// BenchmarkSample2-12    	      85	  13,962417 ns/op	 5280018 B/op	   50000 allocs/op
+		// BenchmarkSample2-12    	      81	  14,866946 ns/op	 5600016 B/op	   50000 allocs/op
+		receiver.fromMeta = newStructField(numFieldValue, parent.StructField[i], &parent)
+		// 12ms
 		receiver.analysisField()
 	}
-	receiver.valueMeta = parent
+	receiver.fromMeta = parent
 }
 
 // 解析map
-func (receiver *AnalysisOjb) analysisMap() {
-	parent := receiver.valueMeta
+func (receiver *analysisOjb) analysisMap() {
+	parent := receiver.fromMeta
 	// 遍历map
 	miter := parent.ReflectValue.MapRange()
 	for miter.Next() {
@@ -57,39 +69,41 @@ func (receiver *AnalysisOjb) analysisMap() {
 		field := reflect.StructField{Name: parse.ToString(mapKey.Interface())}
 
 		// 先分析元数据
-		valMeta := newStructField(mapValue, field, parent, true)
-		receiver.valueMeta = valMeta
+		receiver.fromMeta = newStructField(mapValue, field, &parent)
 		receiver.analysisField()
 	}
 
-	receiver.valueMeta = parent
+	receiver.fromMeta = parent
 }
 
 // 解析字典
-func (receiver *AnalysisOjb) analysisDic() {
+func (receiver *analysisOjb) analysisDic() {
 	// 转成map
-	m := types.GetDictionaryToMap(receiver.ReflectValue)
+	m := types.GetDictionaryToMap(receiver.fromMeta.ReflectValue)
 	// 这里不能用receiver.valueMeta作为父级传入，而必须传receiver.valueMeta.Parent
 	// 因为receiver.ReflectStructField是同一个，否则会出现Name名称重复，如：原来是A，变成AA
-	receiver.valueMeta = newStructField(m, reflect.StructField{Name: receiver.FieldName, Anonymous: receiver.IsAnonymous}, receiver.valueMeta.Parent, true)
+	receiver.fromMeta = newStructField(m, reflect.StructField{Name: receiver.fromMeta.FieldName, Anonymous: receiver.fromMeta.IsAnonymous}, receiver.fromMeta.Parent)
 	// 解析map
 	receiver.analysisMap()
 	// Dic统一将转成map类型，方便赋值时直接取map，而不用区分类型
-	receiver.Type = fastReflect.Map
-	receiver.sourceMap[receiver.Name] = receiver.valueMeta
+	receiver.fromMeta.Type = fastReflect.Map
+	//receiver.sourceMap[receiver.fromMeta.FullName] = &receiver.fromMeta
+	receiver.source = append(receiver.source, receiver.fromMeta)
 }
 
 // 解析字段
-func (receiver *AnalysisOjb) analysisField() {
+func (receiver *analysisOjb) analysisField() {
 	// 不可导出类型，则退出（此行必须先执行，否则会出现指针字段不需要赋值时，被赋值了）
-	if receiver.IsNil || receiver.Type == fastReflect.Interface {
+	if receiver.fromMeta.IsNil || receiver.fromMeta.Type == fastReflect.Interface {
 		return
 	}
 
 	// 先完整的赋值（如果目标类型一致，则可以直接取出来，不用分析）
-	receiver.sourceMap[receiver.Name] = receiver.valueMeta
+	if !receiver.fromMeta.IsMap {
+		receiver.source = append(receiver.source, receiver.fromMeta)
+	}
 
-	switch receiver.Type {
+	switch receiver.fromMeta.Type {
 	case fastReflect.GoBasicType, fastReflect.Interface:
 	// 不需要处理
 	case fastReflect.Slice:
@@ -105,21 +119,16 @@ func (receiver *AnalysisOjb) analysisField() {
 	case fastReflect.Map:
 		// 解析map
 		receiver.analysisMap()
-		receiver.sourceMap[receiver.Name] = receiver.valueMeta
+		//receiver.sourceMap[receiver.fromMeta.FullName] = &receiver.fromMeta
+		receiver.source = append(receiver.source, receiver.fromMeta)
 		return
 	default:
-		// 非结构体遍历（好像没用到）
-		//if strings.Contains(receiver.ParentName, receiver.Name) {
-		//	receiver.sourceMap[receiver.ParentName] = receiver.valueMeta
-		//} else {
-		//	receiver.sourceMap[receiver.Name] = receiver.valueMeta
-		//}
 	}
 }
 
 // 解析切片
-func (receiver *AnalysisOjb) analysisSlice() {
-	parent := receiver.valueMeta
+func (receiver *analysisOjb) analysisSlice() {
+	parent := receiver.fromMeta
 
 	length := parent.ReflectValue.Len()
 	for i := 0; i < length; i++ {
@@ -128,25 +137,25 @@ func (receiver *AnalysisOjb) analysisSlice() {
 		field := reflect.StructField{Name: strconv.Itoa(i)}
 
 		// 先分析元数据
-		valMeta := newStructField(sVal, field, parent, true)
-		receiver.valueMeta = valMeta
+		valMeta := newStructField(sVal, field, &parent)
+		receiver.fromMeta = valMeta
 		receiver.analysisField()
 	}
 
-	receiver.valueMeta = parent
+	receiver.fromMeta = parent
 }
 
 // 解析List
-func (receiver *AnalysisOjb) analysisList() {
+func (receiver *analysisOjb) analysisList() {
 	// 获取List中的数组元数
-	array := types.GetListToArrayValue(receiver.ReflectValue)
+	array := types.GetListToArrayValue(receiver.fromMeta.ReflectValue)
 	if array.Len() > 0 {
-		parent := receiver.valueMeta
+		parent := receiver.fromMeta
 
-		receiver.valueMeta = newStructField(array, reflect.StructField{}, parent, true)
+		receiver.fromMeta = newStructField(array, reflect.StructField{}, &parent)
 		// 分析List中的切片
 		receiver.analysisField()
 
-		receiver.valueMeta = parent
+		receiver.fromMeta = parent
 	}
 }
