@@ -70,9 +70,11 @@ type UserVO4 struct {
 // 第9次优化：451 ms Benchmark2-12    	       3	 450,659945 ns/op	340175312 B/op	 3908975 allocs/op
 // 第10次优化：439 ms Benchmark2-12    	   	   3	 439,052122 ns/op	327125178 B/op	 3798923 allocs/op
 // 第11次优化：274 ms Benchmark2-12    	       4	 281,863772 ns/op	247210794 B/op	 1980033 allocs/op
+// Benchmark2-12    	   41016	     27463 ns/op	   23960 B/op	     207 allocs/op
+// Benchmark2-12    	   63397	     17751 ns/op	   21744 B/op	     153 allocs/op
 func Benchmark2(b *testing.B) {
 	lst := collections.NewList[UserVO]()
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 1; i++ {
 		lst.Add(UserVO{
 			List: collections.NewList[CountVO](CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}),
 			Id:   555,

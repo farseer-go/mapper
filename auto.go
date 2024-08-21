@@ -24,16 +24,21 @@ func auto(from reflect.Value, target any) error {
 	//if targetVal.Kind() != reflect.Pointer {
 	//	return fmt.Errorf("target must be a struct pointer")
 	//}
-
+	// Benchmark2-12    	 1277652	       933.5 ns/op	    1176 B/op	      11 allocs/op
+	// return nil
 	// 遍历来源对象
 	var fAnalysis analysisOjb
-	// BenchmarkSample2-12    	      32	  36,675612 ns/op	39772403 B/op	  212752 allocs/op
-	// BenchmarkSample2-12    	      50	  20,069469 ns/op	37280084 B/op	   80000 allocs/op
 	sourceSlice := fAnalysis.entry(from)
+
+	// Benchmark2-12    	   67772	     17156 ns/op	   21744 B/op	     153 allocs/op
+	// return nil
 
 	// 赋值
 	var tAssign assignObj
 	err := tAssign.entry(targetVal, from, sourceSlice)
+
+	// // Benchmark2-12    	   41016	     27463 ns/op	   23960 B/op	     207 allocs/op
+	// return nil
 
 	/*
 		// 转换完成之后 执行初始化MapperInit方法
