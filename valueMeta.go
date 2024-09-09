@@ -115,7 +115,9 @@ func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
 	if kind == reflect.Pointer {
 		if receiver.IsNil = reflectValue.IsNil(); !receiver.IsNil {
 			reflectValue = reflectValue.Elem()
-			kind = reflectValue.Kind()
+			receiver.setReflectValue(reflectValue)
+			return
+			//kind = reflectValue.Kind()
 		}
 	}
 	switch kind {
@@ -130,6 +132,8 @@ func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
 		// 取真实的类型
 		if !receiver.IsNil { // && receiver.CanInterface
 			reflectValue = reflectValue.Elem()
+			receiver.setReflectValue(reflectValue)
+			return
 		}
 	default:
 		receiver.IsNil = false

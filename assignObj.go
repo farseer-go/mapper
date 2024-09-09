@@ -109,10 +109,15 @@ func (receiver *assignObj) assignField() {
 	case fastReflect.CustomList:
 		receiver.assembleCustomList(sourceValue)
 	case fastReflect.Array:
-	case fastReflect.GoBasicType, fastReflect.Interface:
+	case fastReflect.Interface:
+		if sourceValue.ReflectValue.CanAddr() {
+			sourceValue.ReflectValue = sourceValue.ReflectValue.Addr()
+		}
+		receiver.ReflectValue.Set(sourceValue.ReflectValue)
+	case fastReflect.GoBasicType:
 		val := sourceValue.ReflectValue.Interface()
 		if receiver.ReflectTypeString != sourceValue.ReflectTypeString {
-			val = parse.ConvertValue(sourceValue.ReflectValue.Interface(), receiver.ReflectType)
+			val = parse.ConvertValue(val, receiver.ReflectType)
 		}
 		switch {
 		case receiver.Kind == reflect.String:
