@@ -2,7 +2,6 @@ package mapper
 
 import (
 	"github.com/farseer-go/fs/fastReflect"
-	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
 )
@@ -151,7 +150,8 @@ func (receiver *valueMeta) NewReflectValue() {
 		return
 	}
 
-	if types.IsNil(receiver.ReflectValue) {
+	//if types.IsNil(receiver.ReflectValue) {
+	if receiver.IsNil {
 		// 不能使用此缓存的对象，会出现目标结构有同样结构体类型时，出现同样的指针地址
 		//if receiver.IsAddr {
 		//	receiver.ReflectValue.Set(receiver.ZeroReflectValue)

@@ -274,7 +274,8 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 
 	// 从Dictionary类型中得source类型：map[K]V
 	// new map[K]V
-	newMap := reflect.MakeMap(receiver.MapType)
+	newMap := reflect.New(receiver.MapType).Elem()
+
 	// 组装map[K]V 元数据
 	receiver.valueMeta = newStructField(newMap, reflect.StructField{}, &receiver.valueMeta)
 	// 赋值组装的字段
@@ -293,9 +294,7 @@ func (receiver *assignObj) assembleMap(sourceValue *valueMeta) {
 	if sourceValue != nil && receiver.Type == sourceValue.Type && receiver.ReflectTypeString == sourceValue.ReflectTypeString {
 		// 左值是指针类型，且为nil，需要先初始化
 		receiver.NewReflectValue()
-		//receiver.ReflectValue.Set(sourceValue.ReflectValue)
-		receiver.ReflectValue = sourceValue.ReflectValue
-		//receiver.valueMeta = parent
+		receiver.ReflectValue.Set(sourceValue.ReflectValue)
 		receiver.Addr()
 		return
 	}
@@ -310,7 +309,6 @@ func (receiver *assignObj) assembleMap(sourceValue *valueMeta) {
 
 		itemMeta := parent.GetItemMeta()
 		// 创建一个共享的左字段（没必要每次遍历时创建一个新的）
-		value := reflect.New(itemMeta.ReflectType).Elem()
 
 		iter := sourceValue.ReflectValue.MapRange()
 		for iter.Next() {
@@ -318,8 +316,8 @@ func (receiver *assignObj) assembleMap(sourceValue *valueMeta) {
 			mapKey := iter.Key()
 			field := reflect.StructField{Name: parse.ToString(mapKey.Interface())}
 			// 先分析元数据
-			valMeta := newStructField(value, field, &parent)
-			receiver.valueMeta = valMeta
+			value := reflect.New(itemMeta.ReflectType).Elem()
+			receiver.valueMeta = newStructField(value, field, &parent)
 			receiver.assignField()
 
 			// 如果左边的item是指针，则要转成指针类型
@@ -339,20 +337,10 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 	if receiver.FullName == "" {
 		return nil
 	}
-	// 先使用完全匹配的方式查找
-	// 这里必须使用倒序，因为在List类型会出现两个一样的对象。但前者是List类型，后者是切片类型。这里需要切片类型的对象
-	//for i := len(receiver.sourceSlice) - 1; i >= 0; i-- {
-	//	meta := receiver.sourceSlice[i]
-	//	if receiver.FullName == meta.FullName {
-	//		// 移除数据源
-	//		receiver.sourceSlice = append((receiver.sourceSlice)[:i], (receiver.sourceSlice)[i+1:]...)
-	//		return &meta
-	//	}
-	//}
+
 	for _, meta := range receiver.sourceSlice {
 		if receiver.FullName == meta.FullName {
 			// 移除数据源
-			//receiver.sourceSlice = append((receiver.sourceSlice)[:i], (receiver.sourceSlice)[i+1:]...)
 			return &meta
 		}
 	}

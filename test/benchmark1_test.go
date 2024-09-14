@@ -23,7 +23,7 @@ type SamplePO struct {
 }
 
 // BenchmarkCopyStruct-12    	   14	  81,855216 ns/op	12800284 B/op	  610000 allocs/op （jinzhu）
-// BenchmarkSample2-12    	       26	  38,841798 ns/op	39680215 B/op	  100001 allocs/op
+// BenchmarkSample1-12    	       28	  39,790300 ns/op	39680051 B/op	  100000 allocs/op
 func BenchmarkSample1(b *testing.B) {
 	po := SamplePO{
 		UserName:  "UserName",
@@ -45,18 +45,6 @@ func BenchmarkSample1(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for i := 0; i < 10000; i++ {
 			mapper.Single[SamplePO](po)
-		}
-	}
-}
-
-func BenchmarkSample2(b *testing.B) {
-	b.ReportAllocs()
-
-	a := []int{1}
-	for i := 0; i < b.N; i++ {
-		var b []any
-		for _, ai := range a {
-			b = append(b, ai)
 		}
 	}
 }
