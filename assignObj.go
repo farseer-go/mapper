@@ -269,20 +269,50 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 	}
 }
 
-func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
+func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	parent := receiver.valueMeta
-	if sourceMeta != nil {
-		// 如果字段map为nil，则需要初始化
+
+	// 从Dictionary类型中得source类型：map[K]V
+	// new map[K]V
+	newMap := reflect.MakeMap(receiver.MapType)
+	// 组装map[K]V 元数据
+	receiver.valueMeta = newStructField(newMap, reflect.StructField{}, &receiver.valueMeta)
+	// 赋值组装的字段
+	receiver.assembleMap(sourceMeta)
+
+	// new Dictionary[K,V]
+	newDictionary := types.DictionaryNew(parent.ReflectType)
+	types.DictionaryAddMap(newDictionary, receiver.ReflectValue.Interface())
+
+	receiver.valueMeta = parent
+	receiver.ReflectValue.Set(newDictionary.Elem()) // newDictionary是指针类型，所以要取址
+}
+
+func (receiver *assignObj) assembleMap(sourceValue *valueMeta) {
+	// 如果两边类型相待，则直接赋值
+	if sourceValue != nil && receiver.Type == sourceValue.Type && receiver.ReflectTypeString == sourceValue.ReflectTypeString {
+		// 左值是指针类型，且为nil，需要先初始化
 		receiver.NewReflectValue()
+		//receiver.ReflectValue.Set(sourceValue.ReflectValue)
+		receiver.ReflectValue = sourceValue.ReflectValue
+		//receiver.valueMeta = parent
+		receiver.Addr()
+		return
 	}
 
+	parent := receiver.valueMeta
 	// 遍历
-	if sourceMeta.Type == fastReflect.Map { // sourceMeta != nil &&
+	if sourceValue != nil && sourceValue.Type == fastReflect.Map { // sourceValue != nil &&
+		if receiver.IsNil {
+			// 如果字段map为nil，则需要初始化
+			receiver.NewReflectValue()
+		}
+
 		itemMeta := parent.GetItemMeta()
 		// 创建一个共享的左字段（没必要每次遍历时创建一个新的）
 		value := reflect.New(itemMeta.ReflectType).Elem()
 
-		iter := sourceMeta.ReflectValue.MapRange()
+		iter := sourceValue.ReflectValue.MapRange()
 		for iter.Next() {
 			// 转成Map的索引字段
 			mapKey := iter.Key()
@@ -302,29 +332,6 @@ func (receiver *assignObj) assembleMap(sourceMeta *valueMeta) {
 
 	receiver.valueMeta = parent
 	receiver.Addr()
-}
-
-func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
-	parent := receiver.valueMeta
-
-	// 从Dictionary类型中得source类型：map[K]V
-	//mapType := types.GetDictionaryMapType(receiver.ReflectType)
-	// new map[K]V
-	newMap := reflect.MakeMap(receiver.MapType)
-	//newMap := receiver.ZeroReflectValue
-	// 组装map[K]V 元数据
-	//receiver.valueMeta = newMetaVal(newMap, receiver.valueMeta)
-	valMeta := newStructField(newMap, reflect.StructField{}, &receiver.valueMeta)
-	receiver.valueMeta = valMeta
-	// 赋值组装的字段
-	receiver.assembleMap(sourceMeta)
-
-	// new Dictionary[K,V]
-	newDictionary := types.DictionaryNew(parent.ReflectType)
-	types.DictionaryAddMap(newDictionary, receiver.ReflectValue.Interface())
-
-	receiver.valueMeta = parent
-	receiver.ReflectValue.Set(newDictionary.Elem()) // newDictionary是指针类型，所以要取址
 }
 
 // 查找源字段的值
