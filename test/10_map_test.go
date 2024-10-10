@@ -21,7 +21,7 @@ func TestMap(t *testing.T) {
 		B          collections.Dictionary[string, string]
 	}
 	type s2 struct {
-		ClusterVer map[int64]*subMapEntity
+		ClusterVer map[int64]subMapEntity
 		A          collections.Dictionary[string, string]
 		B          map[string]any
 	}
