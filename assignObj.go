@@ -2,13 +2,15 @@ package mapper
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/farseer-go/fs/dateTime"
 	"github.com/farseer-go/fs/fastReflect"
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
-	"reflect"
-	"strings"
-	"time"
 )
 
 // 解析要赋值的对象
@@ -248,7 +250,7 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 			for i := 0; i < sourceSliceCount; i++ {
 				// 转成切片的索引字段
 				field := reflect.StructField{
-					Name: parse.ToString(i),
+					Name: strconv.Itoa(i),
 				}
 				valMeta := newStructField(reflect.New(targetItemType).Elem(), field, &parent)
 				receiver.valueMeta = valMeta
