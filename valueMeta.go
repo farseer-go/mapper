@@ -1,9 +1,10 @@
 package mapper
 
 import (
-	"github.com/farseer-go/fs/fastReflect"
 	"reflect"
 	"strings"
+
+	"github.com/farseer-go/fs/fastReflect"
 )
 
 // 元数据
@@ -68,7 +69,6 @@ func newStructField(reflectValue reflect.Value, field reflect.StructField, paren
 	switch parent.Type {
 	case fastReflect.Slice:
 		if len(field.Name) > 0 {
-			//mt.FullName = parent.FullName + "[" + field.Name + "]"
 			var strBuilder strings.Builder
 			strBuilder.WriteString(parent.FullName)
 			strBuilder.WriteString("[")
@@ -82,24 +82,12 @@ func newStructField(reflectValue reflect.Value, field reflect.StructField, paren
 	case fastReflect.Map, fastReflect.Dic:
 		if len(field.Name) > 0 {
 			mt.FullName = parent.FullName + field.Name
-			//mt.FullName = parent.FullName + "{" + field.Name + "}"
-			//if parent.FullName != "" {
-			//	var strBuilder strings.Builder
-			//	strBuilder.WriteString(parent.FullName)
-			//	strBuilder.WriteString("{")
-			//	strBuilder.WriteString(field.Name)
-			//	strBuilder.WriteString("}")
-			//	mt.FullName = strBuilder.String()
-			//} else {
-			//	mt.FullName = parent.FullName + field.Name
-			//}
 		} else {
 			mt.FullName = parent.FullName
 		}
 	default:
 		// 内嵌字段类型的Name为类型名称，这里用标记代替
 		if mt.IsAnonymous {
-			//mt.FullName = parent.FullName + anonymousSplitTag
 			mt.FullName = parent.FullName
 		} else {
 			mt.FullName = parent.FullName + field.Name
@@ -116,7 +104,6 @@ func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
 			reflectValue = reflectValue.Elem()
 			receiver.setReflectValue(reflectValue)
 			return
-			//kind = reflectValue.Kind()
 		}
 	}
 	switch kind {
@@ -129,7 +116,7 @@ func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
 	case reflect.Interface:
 		receiver.IsNil = reflectValue.IsNil()
 		// 取真实的类型
-		if !receiver.IsNil { // && receiver.CanInterface
+		if !receiver.IsNil {
 			reflectValue = reflectValue.Elem()
 			receiver.setReflectValue(reflectValue)
 			return
@@ -144,8 +131,6 @@ func (receiver *valueMeta) setReflectValue(reflectValue reflect.Value) {
 // NewReflectValue 左值为指针类型时，需要先初始化
 func (receiver *valueMeta) NewReflectValue() {
 	if !receiver.ReflectValue.IsValid() {
-		//	// 只能使用reflect.New,否则会出现无法寻址的问题
-		//	receiver.ReflectValue = reflect.New(receiver.ReflectType).Elem()
 		receiver.setReflectValue(receiver.ZeroReflectValueElem)
 		return
 	}
@@ -153,11 +138,6 @@ func (receiver *valueMeta) NewReflectValue() {
 	//if types.IsNil(receiver.ReflectValue) {
 	if receiver.IsNil {
 		// 不能使用此缓存的对象，会出现目标结构有同样结构体类型时，出现同样的指针地址
-		//if receiver.IsAddr {
-		//	receiver.ReflectValue.Set(receiver.ZeroReflectValue)
-		//} else {
-		//	receiver.ReflectValue.Set(receiver.ZeroReflectValueElem)
-		//}
 		switch receiver.Type {
 		case fastReflect.Slice:
 			receiver.ReflectValue.Set(reflect.MakeSlice(receiver.ReflectType, 0, 0))

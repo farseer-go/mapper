@@ -1,12 +1,13 @@
 package mapper
 
 import (
+	"reflect"
+	"strconv"
+
 	"github.com/farseer-go/fs/fastReflect"
 	"github.com/farseer-go/fs/flog"
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/fs/types"
-	"reflect"
-	"strconv"
 )
 
 type analysisOjb struct {
@@ -42,15 +43,16 @@ func (receiver *analysisOjb) entry(fromVal reflect.Value) []valueMeta {
 
 // 解析结构体
 func (receiver *analysisOjb) analysisStruct() {
+	if receiver.fromMeta.Level >= 20 {
+		flog.Warningf("解析对象时，超过了20层深度，将停止解析:%s", receiver.fromMeta.ReflectTypeString)
+		return
+	}
 	parent := receiver.fromMeta
 	// 结构体
 	for _, i := range parent.ExportedField {
 		numFieldValue := parent.ReflectValue.Field(i)
 		// 先分析元数据
 		// 10ms
-		// BenchmarkSample2-12    	      88	  13,093350 ns/op	 3840005 B/op	   40000 allocs/op
-		// BenchmarkSample2-12    	      85	  13,962417 ns/op	 5280018 B/op	   50000 allocs/op
-		// BenchmarkSample2-12    	      81	  14,866946 ns/op	 5600016 B/op	   50000 allocs/op
 		receiver.fromMeta = newStructField(numFieldValue, parent.StructField[i], &parent)
 		// 12ms
 		receiver.analysisField()
