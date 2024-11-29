@@ -28,13 +28,23 @@ func auto(from reflect.Value, target any) error {
 	// return nil
 	// 遍历来源对象
 	var fAnalysis analysisOjb
+	defer func() {
+		fAnalysis.source = nil
+		fAnalysis.fromMeta.Parent = nil
+		fAnalysis.fromMeta = valueMeta{}
+	}()
 	sourceSlice := fAnalysis.entry(from)
-
 	// Benchmark2-12    	   67772	     17156 ns/op	   21744 B/op	     153 allocs/op
 	// return nil
 
 	// 赋值
 	var tAssign assignObj
+	defer func() {
+		sourceSlice = nil
+		tAssign.sourceSlice = nil
+		tAssign.valueMeta.Parent = nil
+		tAssign.valueMeta = valueMeta{}
+	}()
 	err := tAssign.entry(targetVal, from, sourceSlice)
 
 	// // Benchmark2-12    	   41016	     27463 ns/op	   23960 B/op	     207 allocs/op
