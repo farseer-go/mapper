@@ -1,12 +1,13 @@
 package test
 
 import (
+	"testing"
+	"time"
+
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/dateTime"
 	"github.com/farseer-go/mapper"
 	"github.com/shopspring/decimal"
-	"testing"
-	"time"
 )
 
 type CountVO struct {
@@ -71,9 +72,13 @@ type UserVO4 struct {
 // 第10次优化：439 ms Benchmark2-12    	   	   3	 439,052122 ns/op	327125178 B/op	 3798923 allocs/op
 // 第11次优化：281 ms Benchmark2-12    	       4	 281,863772 ns/op	247210794 B/op	 1980033 allocs/op
 // 第12次优化：274 ms Benchmark2-12    	       4	 274,476495 ns/op	246091152 B/op	 1990033 allocs/op
+// Benchmark2-10           					  8    132,386391 ns/op        245971292 B/op   1985036 allocs/op
+// Benchmark2-10                 			 10    109,808892 ns/op        174187560 B/op   2564035 allocs/op
 // Benchmark2-12    	   41016	     27463 ns/op	   23960 B/op	     207 allocs/op
 // Benchmark2-12    	   63397	     17751 ns/op	   21744 B/op	     153 allocs/op
 // Benchmark2-12    	   41462	     27493 ns/op	   23848 B/op	     208 allocs/op
+// Benchmark2-10           95859         12198 ns/op           23848 B/op        208 allocs/op
+// Benchmark2-10          116956         10324 ns/op           16672 B/op        266 allocs/op
 func Benchmark2(b *testing.B) {
 	lst := collections.NewList[UserVO]()
 	for i := 0; i < 10000; i++ {

@@ -11,17 +11,17 @@ import (
 )
 
 type analysisOjb struct {
-	source []valueMeta // 分析后的结果
+	source []*valueMeta // 分析后的结果
 	//sourceMap map[string]*valueMeta // 分析后的结果
-	fromMeta valueMeta // 当前元数据
+	fromMeta *valueMeta // 当前元数据
 }
 
 // init 初始化分析对象
-func (receiver *analysisOjb) entry(fromVal reflect.Value) []valueMeta {
+func (receiver *analysisOjb) entry(fromVal reflect.Value) []*valueMeta {
 	// 定义存储map ,保存解析出来的字段和值
 	//receiver.sourceMap = sourceMap
 	// 定义存储map ,保存解析出来的字段和值
-	receiver.fromMeta = valueMeta{
+	receiver.fromMeta = &valueMeta{
 		//Id:           1,
 		ReflectValue: fromVal,
 		IsNil:        false,
@@ -53,7 +53,7 @@ func (receiver *analysisOjb) analysisStruct() {
 		numFieldValue := parent.ReflectValue.Field(i)
 		// 先分析元数据
 		// 10ms
-		receiver.fromMeta = newStructField(numFieldValue, parent.StructField[i], &parent)
+		receiver.fromMeta = newStructField(numFieldValue, parent.StructField[i], parent)
 		// 12ms
 		receiver.analysisField()
 	}
@@ -71,7 +71,7 @@ func (receiver *analysisOjb) analysisMap() {
 		field := reflect.StructField{Name: parse.ToString(mapKey.Interface())}
 
 		// 先分析元数据
-		receiver.fromMeta = newStructField(mapValue, field, &parent)
+		receiver.fromMeta = newStructField(mapValue, field, parent)
 		receiver.analysisField()
 	}
 
@@ -139,7 +139,7 @@ func (receiver *analysisOjb) analysisSlice() {
 		field := reflect.StructField{Name: strconv.Itoa(i)}
 
 		// 先分析元数据
-		valMeta := newStructField(sVal, field, &parent)
+		valMeta := newStructField(sVal, field, parent)
 		receiver.fromMeta = valMeta
 		receiver.analysisField()
 	}
@@ -154,7 +154,7 @@ func (receiver *analysisOjb) analysisList() {
 	if array.Len() > 0 {
 		parent := receiver.fromMeta
 
-		receiver.fromMeta = newStructField(array, reflect.StructField{}, &parent)
+		receiver.fromMeta = newStructField(array, reflect.StructField{}, parent)
 		// 分析List中的切片
 		receiver.analysisField()
 

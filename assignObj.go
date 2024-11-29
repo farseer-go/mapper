@@ -15,15 +15,15 @@ import (
 
 // 解析要赋值的对象
 type assignObj struct {
-	valueMeta               // 当前元数据
-	sourceSlice []valueMeta // 分析后的结果
+	*valueMeta               // 当前元数据
+	sourceSlice []*valueMeta // 分析后的结果
 }
 
 // entry 赋值操作
-func (receiver *assignObj) entry(targetVal reflect.Value, fromVal reflect.Value, sourceSlice []valueMeta) error {
+func (receiver *assignObj) entry(targetVal reflect.Value, fromVal reflect.Value, sourceSlice []*valueMeta) error {
 	receiver.sourceSlice = sourceSlice
 	// 初始化分析对象
-	receiver.valueMeta = valueMeta{
+	receiver.valueMeta = &valueMeta{
 		//Id:           1,
 		IsNil:        false,
 		ReflectValue: targetVal,
@@ -59,7 +59,7 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 		numFieldValue := parent.ReflectValue.Field(i)
 		// 先分析元数据 8ms
 		// BenchmarkSample2-12    	      33	  30,986279 ns/op	39680280 B/op	  100001 allocs/op
-		valMeta := newStructField(numFieldValue, parent.StructField[i], &parent)
+		valMeta := newStructField(numFieldValue, parent.StructField[i], parent)
 		receiver.valueMeta = valMeta
 		receiver.assignField()
 	}
@@ -174,7 +174,7 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	//itemType := types.GetListItemType(receiver.ReflectType)
 	// 组装[]T 元数据
 	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
-	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, &receiver.valueMeta)
+	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, receiver.valueMeta)
 	receiver.valueMeta = valMeta
 
 	// 赋值组装的字段
@@ -201,7 +201,7 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 	//itemType := types.GetListItemType(receiver.ReflectType)
 	// 组装[]T 元数据
 	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
-	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, &receiver.valueMeta)
+	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, receiver.valueMeta)
 	receiver.valueMeta = valMeta
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
@@ -252,7 +252,7 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 				field := reflect.StructField{
 					Name: strconv.Itoa(i),
 				}
-				valMeta := newStructField(reflect.New(targetItemType).Elem(), field, &parent)
+				valMeta := newStructField(reflect.New(targetItemType).Elem(), field, parent)
 				receiver.valueMeta = valMeta
 				receiver.assignField()
 				newArr = reflect.Append(newArr, receiver.ReflectValue)
@@ -279,7 +279,7 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	newMap := reflect.New(receiver.MapType).Elem()
 
 	// 组装map[K]V 元数据
-	receiver.valueMeta = newStructField(newMap, reflect.StructField{}, &receiver.valueMeta)
+	receiver.valueMeta = newStructField(newMap, reflect.StructField{}, receiver.valueMeta)
 	// 赋值组装的字段
 	receiver.assembleMap(sourceMeta)
 
@@ -319,7 +319,7 @@ func (receiver *assignObj) assembleMap(sourceValue *valueMeta) {
 			field := reflect.StructField{Name: parse.ToString(mapKey.Interface())}
 			// 先分析元数据
 			value := reflect.New(itemMeta.ReflectType).Elem()
-			receiver.valueMeta = newStructField(value, field, &parent)
+			receiver.valueMeta = newStructField(value, field, parent)
 			receiver.assignField()
 
 			// 如果左边的item是指针，则要转成指针类型
@@ -343,7 +343,7 @@ func (receiver *assignObj) getSourceValue() *valueMeta {
 	for _, meta := range receiver.sourceSlice {
 		if receiver.FullName == meta.FullName {
 			// 移除数据源
-			return &meta
+			return meta
 		}
 	}
 	return nil

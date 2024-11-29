@@ -43,8 +43,8 @@ func newMetaVal(value reflect.Value) *valueMeta {
 }
 
 // newStructField 创建子元数据
-func newStructField(reflectValue reflect.Value, field reflect.StructField, parent *valueMeta) valueMeta {
-	mt := valueMeta{
+func newStructField(reflectValue reflect.Value, field reflect.StructField, parent *valueMeta) *valueMeta {
+	mt := &valueMeta{
 		//		Id:          parent.Id*10 + uint64(field.Index[0]),
 		Parent:      parent,
 		Level:       parent.Level + 1,

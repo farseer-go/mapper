@@ -1,8 +1,9 @@
 package test
 
 import (
-	"github.com/farseer-go/mapper"
 	"testing"
+
+	"github.com/farseer-go/mapper"
 )
 
 type SamplePO struct {
@@ -24,6 +25,8 @@ type SamplePO struct {
 
 // BenchmarkCopyStruct-12    	   14	  81,855216 ns/op	12800284 B/op	  610000 allocs/op （jinzhu）
 // BenchmarkSample1-12    	       28	  39,790300 ns/op	39680051 B/op	  100000 allocs/op
+// BenchmarkSample1-10             61     18,903289 ns/op   39680284 B/op     100001 allocs/op
+// BenchmarkSample1-10             64     18,751998 ns/op   38000186 B/op     370001 allocs/op
 func BenchmarkSample1(b *testing.B) {
 	po := SamplePO{
 		UserName:  "UserName",
