@@ -20,7 +20,7 @@ type assignObj struct {
 }
 
 // entry 赋值操作
-func (receiver *assignObj) entry(targetVal reflect.Value, fromVal reflect.Value, sourceSlice []*valueMeta) error {
+func (receiver *assignObj) entry(targetVal reflect.Value, sourceSlice []*valueMeta) error {
 	receiver.sourceSlice = sourceSlice
 	// 初始化分析对象
 	receiver.valueMeta = &valueMeta{
