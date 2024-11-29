@@ -39,13 +39,13 @@ func auto(from reflect.Value, target any) error {
 
 	// 赋值
 	var tAssign assignObj
-	// defer func() {
-	// 	sourceSlice = nil
-	// 	tAssign.sourceSlice = nil
-	// 	tAssign.valueMeta.Parent = nil
-	// 	tAssign.valueMeta = valueMeta{}
-	// }()
 	err := tAssign.entry(targetVal, sourceSlice)
+
+	sourceSlice = nil
+	fAnalysis.source = nil
+	fAnalysis.fromMeta = nil
+	tAssign.sourceSlice = nil
+	tAssign.valueMeta = nil
 
 	// // Benchmark2-12    	   41016	     27463 ns/op	   23960 B/op	     207 allocs/op
 	// return nil
