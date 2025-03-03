@@ -1,16 +1,17 @@
 package test
 
 import (
+	"testing"
+	"time"
+
 	"github.com/farseer-go/fs/trace"
 	"github.com/farseer-go/fs/trace/eumCallType"
 	"github.com/farseer-go/mapper"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 type TraceDetailDatabase struct {
-	trace.BaseTraceDetail
+	trace.TraceDetail
 	DbName       string // 数据库名
 	RowsAffected int64  // 影响行数
 }
@@ -48,7 +49,6 @@ func TestAnonymous(t *testing.T) {
 	}
 	do := mapper.Single[TraceDetailDatabase](po)
 
-	assert.Equal(t, do.TraceId, po.TraceId)
 	assert.Equal(t, do.Level, po.Level)
 	assert.Equal(t, do.CallType, po.CallType)
 	assert.Equal(t, do.Timeline, po.Timeline)
