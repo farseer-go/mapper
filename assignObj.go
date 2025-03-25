@@ -181,10 +181,11 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	receiver.assembleSlice(sourceMeta)
 
 	// new List[T]
-	toList := types.ListNew(parent.ReflectType)
+	len := receiver.ReflectValue.Len()
+	toList := types.ListNew(parent.ReflectType, len)
 	method := types.GetAddMethod(toList)
 
-	for i := 0; i < receiver.ReflectValue.Len(); i++ {
+	for i := 0; i < len; i++ {
 		//获取数组内的元素
 		structObj := receiver.ReflectValue.Index(i)
 		method.Call([]reflect.Value{structObj})
@@ -209,10 +210,11 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 	// 得到类型：List[T]
 	lstType := reflect.ValueOf(reflect.New(parent.ReflectType).Elem().MethodByName("ToList").Call([]reflect.Value{})[0].Interface()).Type()
 	// new List[T]
-	toList := types.ListNew(lstType)
+	len := receiver.ReflectValue.Len()
+	toList := types.ListNew(lstType, len)
 	method := types.GetAddMethod(toList)
 
-	for i := 0; i < receiver.ReflectValue.Len(); i++ {
+	for i := 0; i < len; i++ {
 		//获取数组内的元素
 		structObj := receiver.ReflectValue.Index(i)
 		method.Call([]reflect.Value{structObj})
