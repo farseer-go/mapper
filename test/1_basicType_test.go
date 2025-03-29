@@ -1,12 +1,13 @@
 package test
 
 import (
-	"github.com/farseer-go/fs/dateTime"
-	"github.com/farseer-go/mapper"
-	"github.com/shopspring/decimal"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/farseer-go/fs/dateTime"
+	"github.com/farseer-go/mapper"
+	"github.com/govalues/decimal"
+	"github.com/stretchr/testify/assert"
 )
 
 type SamplePO1 struct {
@@ -77,6 +78,7 @@ type SamplePO2 struct {
 
 // 基础类型测试
 func TestBasicType(t *testing.T) {
+	float66_88, _ := decimal.NewFromFloat64(66.88)
 	po := SamplePO1{
 		UserName:     "UserName",
 		IsEnable:     true,
@@ -98,7 +100,7 @@ func TestBasicType(t *testing.T) {
 		Id8Str:  "8",
 		Id16Str: "16",
 
-		Dec:      decimal.NewFromFloat(66.88),
+		Dec:      float66_88,
 		ArrayStr: []string{"a", "b"},
 		ArrayInt: []int{3, 4},
 		CreateAt: time.Now(),

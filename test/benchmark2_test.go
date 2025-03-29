@@ -7,7 +7,7 @@ import (
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/dateTime"
 	"github.com/farseer-go/mapper"
-	"github.com/shopspring/decimal"
+	"github.com/govalues/decimal"
 )
 
 type CountVO struct {
@@ -81,6 +81,7 @@ type UserVO4 struct {
 // Benchmark2-10          116956         10324 ns/op           16672 B/op        266 allocs/op
 func Benchmark2(b *testing.B) {
 	lst := collections.NewList[UserVO]()
+	float3, _ := decimal.NewFromFloat64(3)
 	for i := 0; i < 10000; i++ {
 		lst.Add(UserVO{
 			List: collections.NewList[CountVO](CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}),
@@ -93,7 +94,7 @@ func Benchmark2(b *testing.B) {
 				Time3: time.Time{},
 				Time:  time.Time{},
 				Date:  dateTime.Now(),
-				Dec:   decimal.NewFromFloat32(3),
+				Dec:   float3,
 				Ts:    333333,
 			},
 			Array3: []string{"a", "a", "a", "a", "a", "a"},
@@ -107,5 +108,18 @@ func Benchmark2(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mapper.ToList[UserVO2](lst)
+	}
+}
+
+func Benchmark3(b *testing.B) {
+	float3, _ := decimal.NewFromFloat64(3)
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		float3.Add(float3)
+		float3.Sub(float3)
+		float3.Mul(decimal.One)
+		float3.Quo(decimal.One)
+		decimal.MustParse("50.155")
 	}
 }
