@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/farseer-go/data/decimal"
 	"github.com/farseer-go/fs/dateTime"
 	"github.com/farseer-go/mapper"
-	"github.com/govalues/decimal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -78,7 +78,7 @@ type SamplePO2 struct {
 
 // 基础类型测试
 func TestBasicType(t *testing.T) {
-	float66_88, _ := decimal.NewFromFloat64(66.88)
+	float66_88 := decimal.NewFromFloat64(66.88)
 	po := SamplePO1{
 		UserName:     "UserName",
 		IsEnable:     true,
