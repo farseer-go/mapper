@@ -101,7 +101,8 @@ func (receiver *analysisOjb) analysisField() {
 	}
 
 	// 先完整的赋值（如果目标类型一致，则可以直接取出来，不用分析）
-	if !receiver.fromMeta.IsMap {
+	// List因为会转成切片，所以这里不能append
+	if !receiver.fromMeta.IsMap && receiver.fromMeta.Type != fastReflect.List {
 		receiver.source = append(receiver.source, receiver.fromMeta)
 	}
 
