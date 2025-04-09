@@ -37,11 +37,13 @@ func TestAnonymous(t *testing.T) {
 			CallType: 2,
 			Timeline: 3,
 			Exception: &trace.ExceptionStack{
-				ExceptionCallFile:     "4",
-				ExceptionCallLine:     5,
-				ExceptionCallFuncName: "6",
-				ExceptionIsException:  true,
-				ExceptionMessage:      "7",
+				Details: []trace.ExceptionStackDetail{trace.ExceptionStackDetail{
+					ExceptionCallFile:     "4",
+					ExceptionCallLine:     5,
+					ExceptionCallFuncName: "6",
+				}},
+				ExceptionIsException: true,
+				ExceptionMessage:     "7",
 			},
 		},
 		DbName:       "8",
@@ -52,9 +54,9 @@ func TestAnonymous(t *testing.T) {
 	assert.Equal(t, do.Level, po.Level)
 	assert.Equal(t, do.CallType, po.CallType)
 	assert.Equal(t, do.Timeline, po.Timeline)
-	assert.Equal(t, do.Exception.ExceptionCallFile, po.Exception.ExceptionCallFile)
-	assert.Equal(t, do.Exception.ExceptionCallLine, po.Exception.ExceptionCallLine)
-	assert.Equal(t, do.Exception.ExceptionCallFuncName, po.Exception.ExceptionCallFuncName)
+	assert.Equal(t, do.Exception.Details[0].ExceptionCallFile, po.Exception.Details[0].ExceptionCallFile)
+	assert.Equal(t, do.Exception.Details[0].ExceptionCallLine, po.Exception.Details[0].ExceptionCallLine)
+	assert.Equal(t, do.Exception.Details[0].ExceptionCallFuncName, po.Exception.Details[0].ExceptionCallFuncName)
 	assert.Equal(t, do.Exception.ExceptionIsException, po.Exception.ExceptionIsException)
 	assert.Equal(t, do.Exception.ExceptionMessage, po.Exception.ExceptionMessage)
 	assert.Equal(t, do.DbName, po.DbName)
