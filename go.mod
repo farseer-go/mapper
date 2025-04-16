@@ -5,9 +5,9 @@ go 1.23.0
 toolchain go1.23.8
 
 require (
-	github.com/farseer-go/collections v0.16.6
-	github.com/farseer-go/data v0.16.1
-	github.com/farseer-go/fs v0.16.7
+	github.com/farseer-go/collections v0.16.8
+	github.com/farseer-go/data v0.16.8
+	github.com/farseer-go/fs v0.16.8
 	github.com/stretchr/testify v1.10.0
 )
 
