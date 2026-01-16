@@ -1,10 +1,11 @@
 package mapper
 
 import (
-	"github.com/farseer-go/collections"
-	"github.com/farseer-go/fs/types"
 	"reflect"
 	"strings"
+
+	"github.com/farseer-go/collections"
+	"github.com/farseer-go/fs/types"
 )
 
 // Single 单个转换
@@ -134,9 +135,12 @@ func structToMap(fromObjPtr any, dic any) error {
 	fsVal := reflect.Indirect(reflect.ValueOf(fromObjPtr))
 	dicValue := reflect.ValueOf(dic)
 	for i := 0; i < fsVal.NumField(); i++ {
-		itemName := fsVal.Type().Field(i).Name
+		field := fsVal.Type().Field(i)
+		itemName := field.Name
 		itemValue := fsVal.Field(i)
-		if fsVal.Type().Field(i).Type.Kind() != reflect.Interface {
+
+		// 只处理导出的字段（大写字母开头）
+		if field.IsExported() && field.Type.Kind() != reflect.Interface {
 			dicValue.SetMapIndex(reflect.ValueOf(itemName), itemValue)
 		}
 	}
