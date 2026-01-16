@@ -32,7 +32,7 @@ func TestPointer(t *testing.T) {
 	}
 	do := s1{
 		Exception1: &trace.ExceptionStack{
-			Details: []trace.ExceptionStackDetail{trace.ExceptionStackDetail{
+			ExceptionDetails: []trace.ExceptionStackDetail{trace.ExceptionStackDetail{
 				ExceptionCallFile:     "1",
 				ExceptionCallLine:     2,
 				ExceptionCallFuncName: "3",
@@ -41,7 +41,7 @@ func TestPointer(t *testing.T) {
 			ExceptionMessage:     "4",
 		},
 		Exception2: &trace.ExceptionStack{
-			Details: []trace.ExceptionStackDetail{trace.ExceptionStackDetail{
+			ExceptionDetails: []trace.ExceptionStackDetail{trace.ExceptionStackDetail{
 				ExceptionCallFile:     "11",
 				ExceptionCallLine:     22,
 				ExceptionCallFuncName: "33",
@@ -50,7 +50,7 @@ func TestPointer(t *testing.T) {
 			ExceptionMessage:     "44",
 		},
 		Exception3: trace.ExceptionStack{
-			Details: []trace.ExceptionStackDetail{trace.ExceptionStackDetail{
+			ExceptionDetails: []trace.ExceptionStackDetail{trace.ExceptionStackDetail{
 				ExceptionCallFile:     "111",
 				ExceptionCallLine:     222,
 				ExceptionCallFuncName: "333",
@@ -62,21 +62,21 @@ func TestPointer(t *testing.T) {
 	}
 	po := mapper.Single[s2](do)
 
-	assert.Equal(t, do.Exception1.Details[0].ExceptionCallFile, po.Exception1.Details[0].ExceptionCallFile)
-	assert.Equal(t, do.Exception1.Details[0].ExceptionCallLine, po.Exception1.Details[0].ExceptionCallLine)
-	assert.Equal(t, do.Exception1.Details[0].ExceptionCallFuncName, po.Exception1.Details[0].ExceptionCallFuncName)
+	assert.Equal(t, do.Exception1.ExceptionDetails[0].ExceptionCallFile, po.Exception1.ExceptionDetails[0].ExceptionCallFile)
+	assert.Equal(t, do.Exception1.ExceptionDetails[0].ExceptionCallLine, po.Exception1.ExceptionDetails[0].ExceptionCallLine)
+	assert.Equal(t, do.Exception1.ExceptionDetails[0].ExceptionCallFuncName, po.Exception1.ExceptionDetails[0].ExceptionCallFuncName)
 	assert.Equal(t, do.Exception1.ExceptionIsException, po.Exception1.ExceptionIsException)
 	assert.Equal(t, do.Exception1.ExceptionMessage, po.Exception1.ExceptionMessage)
 
-	assert.Equal(t, do.Exception2.Details[0].ExceptionCallFile, po.Exception2.Details[0].ExceptionCallFile)
-	assert.Equal(t, do.Exception2.Details[0].ExceptionCallLine, po.Exception2.Details[0].ExceptionCallLine)
-	assert.Equal(t, do.Exception2.Details[0].ExceptionCallFuncName, po.Exception2.Details[0].ExceptionCallFuncName)
+	assert.Equal(t, do.Exception2.ExceptionDetails[0].ExceptionCallFile, po.Exception2.ExceptionDetails[0].ExceptionCallFile)
+	assert.Equal(t, do.Exception2.ExceptionDetails[0].ExceptionCallLine, po.Exception2.ExceptionDetails[0].ExceptionCallLine)
+	assert.Equal(t, do.Exception2.ExceptionDetails[0].ExceptionCallFuncName, po.Exception2.ExceptionDetails[0].ExceptionCallFuncName)
 	assert.Equal(t, do.Exception2.ExceptionIsException, po.Exception2.ExceptionIsException)
 	assert.Equal(t, do.Exception2.ExceptionMessage, po.Exception2.ExceptionMessage)
 
-	assert.Equal(t, do.Exception3.Details[0].ExceptionCallFile, po.Exception3.Details[0].ExceptionCallFile)
-	assert.Equal(t, do.Exception3.Details[0].ExceptionCallLine, po.Exception3.Details[0].ExceptionCallLine)
-	assert.Equal(t, do.Exception3.Details[0].ExceptionCallFuncName, po.Exception3.Details[0].ExceptionCallFuncName)
+	assert.Equal(t, do.Exception3.ExceptionDetails[0].ExceptionCallFile, po.Exception3.ExceptionDetails[0].ExceptionCallFile)
+	assert.Equal(t, do.Exception3.ExceptionDetails[0].ExceptionCallLine, po.Exception3.ExceptionDetails[0].ExceptionCallLine)
+	assert.Equal(t, do.Exception3.ExceptionDetails[0].ExceptionCallFuncName, po.Exception3.ExceptionDetails[0].ExceptionCallFuncName)
 	assert.Equal(t, do.Exception3.ExceptionIsException, po.Exception3.ExceptionIsException)
 	assert.Equal(t, do.Exception3.ExceptionMessage, po.Exception3.ExceptionMessage)
 

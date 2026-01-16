@@ -1,12 +1,13 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/dateTime"
 	"github.com/farseer-go/fs/parse"
 	"github.com/farseer-go/mapper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMap(t *testing.T) {
@@ -59,6 +60,7 @@ func TestStructToMap(t *testing.T) {
 		Id     int
 		Status state
 		User   userVO
+		aa     string
 	}
 
 	dto := s1{
@@ -68,6 +70,7 @@ func TestStructToMap(t *testing.T) {
 			Id:   88,
 			Name: "steden",
 		},
+		aa: "fff",
 	}
 	dic := mapper.ToMap[string, any](dto)
 	assert.Equal(t, "steden", dic["User"].(userVO).Name)

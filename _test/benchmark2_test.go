@@ -24,7 +24,7 @@ type UserVO3 struct {
 	Time3 time.Time
 	Time  time.Time
 	Date  dateTime.DateTime
-	Dec   decimal.Decimal
+	Dec   decimal.Decimal // 需要时再打开
 	Ts    time.Duration
 }
 type UserVO struct {
@@ -38,7 +38,7 @@ type UserVO struct {
 	Count3 map[int]CountVO2
 }
 type UserVO2 struct {
-	//List2  collections.List[CountVO]
+	List2  collections.List[CountVO]
 	List   collections.List[CountVO]
 	Id     int64
 	Name   string
@@ -81,10 +81,10 @@ type UserVO4 struct {
 // Benchmark2-10          116956         10324 ns/op           16672 B/op        266 allocs/op
 func Benchmark2(b *testing.B) {
 	lst := collections.NewList[UserVO]()
-	float3 := decimal.NewFromInt(3)
+	float3 := decimal.NewFromInt(3) // 需要时再打开
 	for i := 0; i < 10000; i++ {
 		lst.Add(UserVO{
-			List: collections.NewList[CountVO](CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}),
+			List: collections.NewList(CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}, CountVO{Count: 0}),
 			Id:   555,
 			Name: "aaaa",
 			User3: UserVO3{
@@ -94,7 +94,7 @@ func Benchmark2(b *testing.B) {
 				Time3: time.Time{},
 				Time:  time.Time{},
 				Date:  dateTime.Now(),
-				Dec:   float3,
+				Dec:   float3, // 需要时再打开
 				Ts:    333333,
 			},
 			Array3: []string{"a", "a", "a", "a", "a", "a"},
