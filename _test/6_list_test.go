@@ -1,10 +1,11 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/mapper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestToList(t *testing.T) {
@@ -54,12 +55,19 @@ func TestToList(t *testing.T) {
 
 	arr := lst.ToArray()
 	lstDO = mapper.ToList[s2](arr)
-
 	assert.Equal(t, len(arr), lstDO.Count())
-
 	for i := 0; i < lstAny.Count(); i++ {
 		assert.Equal(t, arr[i].Id, lstDO.Index(i).Id)
 		assert.Equal(t, arr[i].User.Name, lstDO.Index(i).UserName)
 		assert.Equal(t, arr[i].User.Id, lstDO.Index(i).UserId)
+	}
+
+	// 结体体数组转成any数组
+	lstAny2 := mapper.ToList[any](arr)
+	assert.Equal(t, len(arr), lstAny2.Count())
+	for i := 0; i < lstAny.Count(); i++ {
+		assert.Equal(t, arr[i].Id, lstAny2.Index(i).(s1).Id)
+		assert.Equal(t, arr[i].User.Name, lstAny2.Index(i).(s1).User.Name)
+		assert.Equal(t, arr[i].User.Id, lstAny2.Index(i).(s1).User.Id)
 	}
 }

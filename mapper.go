@@ -81,6 +81,7 @@ func arrayByReflectValue[TEntity any](sliArray reflect.Value, set ...func(*TEnti
 		var toObj TEntity
 		// BenchmarkSample-12    	   33852	     33642 ns/op	     264 B/op	       7 allocs/op
 		item := sliArray.Index(i)
+
 		// 基础类型
 		_ = auto(item, &toObj)
 		if set != nil {

@@ -19,7 +19,11 @@ func Auto(from, target any) error {
 // 对象相互转换
 func auto(from reflect.Value, target any) error {
 	targetVal := reflect.ValueOf(target).Elem()
-
+	if targetVal.Kind() == reflect.Interface {
+		targetVal.Set(from)
+		//target = from.Interface()
+		return nil
+	}
 	// 判断是否指针 外部需保证为指针类型
 	//if targetVal.Kind() != reflect.Pointer {
 	//	return fmt.Errorf("target must be a struct pointer")
