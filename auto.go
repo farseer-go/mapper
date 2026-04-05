@@ -45,11 +45,28 @@ func auto(from reflect.Value, target any) error {
 	var tAssign assignObj
 	err := tAssign.entry(targetVal, sourceSlice)
 
+	// 清理资源
 	sourceSlice = nil
+	analysisArena := fAnalysis.arena
+	sourcePool := fAnalysis.sourcePool
+	if sourcePool != nil {
+		*sourcePool = fAnalysis.source[:0] // 清空但保留底层数组
+	}
 	fAnalysis.source = nil
+	fAnalysis.sourcePool = nil
+	fAnalysis.arena = nil
 	fAnalysis.fromMeta = nil
+	putArena(analysisArena)
+	putSliceToPool(sourcePool)
+
+	assignArena := tAssign.arena
+	assignMap := tAssign.sourceMap
 	tAssign.sourceSlice = nil
+	tAssign.sourceMap = nil
 	tAssign.valueMeta = nil
+	tAssign.arena = nil
+	putArena(assignArena)
+	putSourceMap(assignMap)
 
 	// // Benchmark2-12    	   41016	     27463 ns/op	   23960 B/op	     207 allocs/op
 	// return nil

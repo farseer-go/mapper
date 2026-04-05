@@ -15,20 +15,34 @@ import (
 
 // 解析要赋值的对象
 type assignObj struct {
-	*valueMeta               // 当前元数据
-	sourceSlice []*valueMeta // 分析后的结果
+	*valueMeta                         // 当前元数据
+	sourceSlice []*valueMeta          // 分析后的结果
+	sourceMap   map[uint64]*valueMeta // FullHash → meta，O(1) 查找
+	usePool     bool                  // 是否使用对象池
+	arena       *metaArena            // 局部分配器
 }
 
 // entry 赋值操作
 func (receiver *assignObj) entry(targetVal reflect.Value, sourceSlice []*valueMeta) error {
 	receiver.sourceSlice = sourceSlice
-	// 初始化分析对象
-	receiver.valueMeta = &valueMeta{
-		//Id:           1,
-		IsNil:        false,
-		ReflectValue: targetVal,
-		PointerMeta:  fastReflect.PointerOfValue(targetVal),
+	receiver.usePool = true
+
+	// 获取 arena 分配器
+	receiver.arena = getArena()
+
+	// 从 pool 取 map，O(1) 查找替代 O(n) 线性扫描
+	receiver.sourceMap = getSourceMap()
+	for _, meta := range sourceSlice {
+		if meta.FullHash != 0 {
+			receiver.sourceMap[meta.FullHash] = meta
+		}
 	}
+
+	// 从 arena 分配根 valueMeta
+	receiver.valueMeta = receiver.arena.alloc()
+	receiver.valueMeta.IsNil = false
+	receiver.valueMeta.ReflectValue = targetVal
+	receiver.valueMeta.PointerMeta = fastReflect.PointerOfValue(targetVal)
 
 	if receiver.valueMeta.Type != fastReflect.Struct {
 		return fmt.Errorf("mapper赋值类型，必须是Struct：%s", receiver.valueMeta.ReflectTypeString)
@@ -37,6 +51,20 @@ func (receiver *assignObj) entry(targetVal reflect.Value, sourceSlice []*valueMe
 	receiver.assembleStruct(nil)
 
 	return nil
+}
+
+// allocStructField 用 arena 分配一个子 valueMeta（赋值阶段：只计算 hash，不分配 FullName）
+func (receiver *assignObj) allocStructField(reflectValue reflect.Value, field reflect.StructField, parent *valueMeta) *valueMeta {
+	mt := receiver.arena.alloc()
+	fillStructFieldAssign(mt, reflectValue, field, parent)
+	return mt
+}
+
+// allocStructFieldByIndex 结构体字段快速路径（赋值阶段：只计算 hash，不分配 FullName）
+func (receiver *assignObj) allocStructFieldByIndex(reflectValue reflect.Value, fieldIdx int, parent *valueMeta) *valueMeta {
+	mt := receiver.arena.alloc()
+	fillStructFieldByIndexAssign(mt, reflectValue, fieldIdx, parent)
+	return mt
 }
 
 // 赋值结构体
@@ -55,11 +83,13 @@ func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
 	}
 
 	parent := receiver.valueMeta
-	for _, i := range parent.ExportedField {
-		numFieldValue := parent.ReflectValue.Field(i)
-		// 先分析元数据 8ms
-		// BenchmarkSample2-12    	      33	  30,986279 ns/op	39680280 B/op	  100001 allocs/op
-		valMeta := newStructField(numFieldValue, parent.StructField[i], parent)
+	exportedField := parent.ExportedField
+	parentReflectValue := parent.ReflectValue
+
+	for _, i := range exportedField {
+		numFieldValue := parentReflectValue.Field(i)
+		// 先分析元数据：用 ByIndex 快速路径，跳过 sync.Map 查表
+		valMeta := receiver.allocStructFieldByIndex(numFieldValue, i, parent)
 		receiver.valueMeta = valMeta
 		receiver.assignField()
 	}
@@ -79,15 +109,16 @@ func (receiver *assignObj) assignField() {
 		return
 	}
 
+	receiverType := receiver.Type
 	// 源值为nil，且不是结构、字典时，不需要继续往下走。没有意义
 	// 结构体跳过，因为需要支持：Client.Id = ClientId 这种格式 && receiver.Type != Struct
-	if sourceValue == nil && !receiver.IsAnonymous && (receiver.Type != fastReflect.Struct || !receiver.ContainsSourceKey()) { //
+	if sourceValue == nil && !receiver.IsAnonymous && (receiverType != fastReflect.Struct || !receiver.ContainsSourceKey()) { //
 		//  && (receiver.Type != Struct && receiver.Type != Map && receiver.Type != Dic)
 		return
 	}
 
 	// 类型完全相等时，直接赋值
-	if sourceValue != nil && receiver.Type == sourceValue.Type && receiver.ReflectTypeString == sourceValue.ReflectTypeString {
+	if sourceValue != nil && receiverType == sourceValue.Type && receiver.ReflectTypeString == sourceValue.ReflectTypeString {
 		// 左值是指针类型，且为nil，需要先初始化
 		receiver.NewReflectValue()
 		receiver.ReflectValue.Set(sourceValue.ReflectValue)
@@ -95,7 +126,7 @@ func (receiver *assignObj) assignField() {
 		return
 	}
 
-	switch receiver.Type {
+	switch receiverType {
 	case fastReflect.List:
 		// 只处理数据源是切片的（源数据List也会转成切片）
 		if sourceValue.Type != fastReflect.Slice || sourceValue == nil {
@@ -174,18 +205,23 @@ func (receiver *assignObj) assembleList(sourceMeta *valueMeta) {
 	//itemType := types.GetListItemType(receiver.ReflectType)
 	// 组装[]T 元数据
 	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
-	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, receiver.valueMeta)
+	valMeta := receiver.allocStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, receiver.valueMeta)
 	receiver.valueMeta = valMeta
 
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
 
 	// new List[T]
-	len := receiver.ReflectValue.Len()
-	toList := types.ListNew(parent.ReflectType, len)
+	sliceLen := receiver.ReflectValue.Len()
+	if sliceLen == 0 {
+		receiver.valueMeta = parent
+		return
+	}
+
+	toList := types.ListNew(parent.ReflectType, sliceLen)
 	method := types.GetAddMethod(toList)
 
-	for i := 0; i < len; i++ {
+	for i := 0; i < sliceLen; i++ {
 		//获取数组内的元素
 		structObj := receiver.ReflectValue.Index(i)
 		method.Call([]reflect.Value{structObj})
@@ -202,19 +238,24 @@ func (receiver *assignObj) assembleCustomList(sourceMeta *valueMeta) {
 	//itemType := types.GetListItemType(receiver.ReflectType)
 	// 组装[]T 元数据
 	//receiver.valueMeta = NewMetaByType(reflect.SliceOf(itemType), receiver.valueMeta)
-	valMeta := newStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, receiver.valueMeta)
+	valMeta := receiver.allocStructField(reflect.New(receiver.SliceType).Elem(), reflect.StructField{}, receiver.valueMeta)
 	receiver.valueMeta = valMeta
 	// 赋值组装的字段
 	receiver.assembleSlice(sourceMeta)
 
+	sliceLen := receiver.ReflectValue.Len()
+	if sliceLen == 0 {
+		receiver.valueMeta = parent
+		return
+	}
+
 	// 得到类型：List[T]
 	lstType := reflect.ValueOf(reflect.New(parent.ReflectType).Elem().MethodByName("ToList").Call([]reflect.Value{})[0].Interface()).Type()
 	// new List[T]
-	len := receiver.ReflectValue.Len()
-	toList := types.ListNew(lstType, len)
+	toList := types.ListNew(lstType, sliceLen)
 	method := types.GetAddMethod(toList)
 
-	for i := 0; i < len; i++ {
+	for i := 0; i < sliceLen; i++ {
 		//获取数组内的元素
 		structObj := receiver.ReflectValue.Index(i)
 		method.Call([]reflect.Value{structObj})
@@ -233,44 +274,48 @@ func (receiver *assignObj) assembleSlice(sourceMeta *valueMeta) {
 
 	// T
 	targetItemType := itemMeta.ReflectType
-	// New []T
-	newArr := receiver.ZeroReflectValue
-	//newArr := reflect.MakeSlice(receiver.SliceType, 0, 0)
 
 	sourceSliceCount := 0
 	// 遍历源数组（前面已经判断这里一定是切片类型）
 	if sourceMeta.Type == fastReflect.Slice {
 		sourceSliceCount = sourceMeta.ReflectValue.Len()
-		// item类型一致，直接赋值
-		if itemMeta.ReflectTypeString == sourceItemMeta.ReflectTypeString {
-			for i := 0; i < sourceSliceCount; i++ {
-				// 获取数组内的元素
-				sourceItemValue := sourceMeta.ReflectValue.Index(i)
-				newArr = reflect.Append(newArr, sourceItemValue)
-			}
-		} else {
-			for i := 0; i < sourceSliceCount; i++ {
-				// 转成切片的索引字段
-				field := reflect.StructField{
-					Name: strconv.Itoa(i),
-				}
-				valMeta := newStructField(reflect.New(targetItemType).Elem(), field, parent)
-				receiver.valueMeta = valMeta
-				receiver.assignField()
-				newArr = reflect.Append(newArr, receiver.ReflectValue)
-				// 这里改变了层级，需要恢复
-				receiver.valueMeta = parent
-			}
+	}
+
+	// 没有元素，直接返回
+	if sourceSliceCount == 0 {
+		return
+	}
+
+	// 预分配切片容量
+	newArr := reflect.MakeSlice(receiver.SliceType, 0, sourceSliceCount)
+
+	// item类型一致，直接赋值
+	if itemMeta.ReflectTypeString == sourceItemMeta.ReflectTypeString {
+		for i := 0; i < sourceSliceCount; i++ {
+			// 获取数组内的元素
+			sourceItemValue := sourceMeta.ReflectValue.Index(i)
+			newArr = reflect.Append(newArr, sourceItemValue)
+		}
+	} else {
+		// 预分配 StructField，避免循环内重复创建
+		field := reflect.StructField{}
+		for i := 0; i < sourceSliceCount; i++ {
+			// 转成切片的索引字段
+			field.Name = strconv.Itoa(i)
+			valMeta := receiver.allocStructField(reflect.New(targetItemType).Elem(), field, parent)
+			receiver.valueMeta = valMeta
+			receiver.assignField()
+			newArr = reflect.Append(newArr, receiver.ReflectValue)
+			// 这里改变了层级，需要恢复
+			receiver.valueMeta = parent
 		}
 	}
 	receiver.valueMeta = parent
 
 	// 有值，才要赋值，不然会出现没意义的实例化
-	if sourceSliceCount > 0 {
-		receiver.NewReflectValue()
-		receiver.ReflectValue.Set(newArr)
-		receiver.Addr()
-	}
+	receiver.NewReflectValue()
+	receiver.ReflectValue.Set(newArr)
+	receiver.Addr()
 }
 
 func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
@@ -281,7 +326,7 @@ func (receiver *assignObj) assembleDic(sourceMeta *valueMeta) {
 	newMap := reflect.New(receiver.MapType).Elem()
 
 	// 组装map[K]V 元数据
-	receiver.valueMeta = newStructField(newMap, reflect.StructField{}, receiver.valueMeta)
+	receiver.valueMeta = receiver.allocStructField(newMap, reflect.StructField{}, receiver.valueMeta)
 	// 赋值组装的字段
 	receiver.assembleMap(sourceMeta)
 
@@ -305,14 +350,15 @@ func (receiver *assignObj) assembleMap(sourceValue *valueMeta) {
 
 	parent := receiver.valueMeta
 	// 遍历
-	if sourceValue != nil && sourceValue.Type == fastReflect.Map { // sourceValue != nil &&
+	if sourceValue != nil && sourceValue.Type == fastReflect.Map {
 		if receiver.IsNil {
 			// 如果字段map为nil，则需要初始化
 			receiver.NewReflectValue()
 		}
 
 		itemMeta := parent.GetItemMeta()
-		// 创建一个共享的左字段（没必要每次遍历时创建一个新的）
+		// 是否为指针类型
+		itemIsAddr := itemMeta.IsAddr
 
 		iter := sourceValue.ReflectValue.MapRange()
 		for iter.Next() {
@@ -321,11 +367,11 @@ func (receiver *assignObj) assembleMap(sourceValue *valueMeta) {
 			field := reflect.StructField{Name: parse.ToString(mapKey.Interface())}
 			// 先分析元数据
 			value := reflect.New(itemMeta.ReflectType).Elem()
-			receiver.valueMeta = newStructField(value, field, parent)
+			receiver.valueMeta = receiver.allocStructField(value, field, parent)
 			receiver.assignField()
 
 			// 如果左边的item是指针，则要转成指针类型
-			if itemMeta.IsAddr {
+			if itemIsAddr {
 				receiver.ReflectValue = receiver.ReflectValue.Addr()
 			}
 			parent.ReflectValue.SetMapIndex(mapKey, receiver.ReflectValue)
@@ -338,25 +384,43 @@ func (receiver *assignObj) assembleMap(sourceValue *valueMeta) {
 
 // 查找源字段的值
 func (receiver *assignObj) getSourceValue() *valueMeta {
-	if receiver.FullName == "" {
+	if receiver.FullHash == 0 {
 		return nil
 	}
-
-	for _, meta := range receiver.sourceSlice {
-		if receiver.FullName == meta.FullName {
-			// 移除数据源
-			return meta
-		}
-	}
-	return nil
+	return receiver.sourceMap[receiver.FullHash]
 }
 
 // ContainsSourceKey 因为需要支持：当目标字段Client为指定类型时，源值有：ClientId字段，则要支持Client.Id = ClientId 这种格式，所以使用包含的方式来判断
+// 赋值阶段不预计算 FullName，此处按需从 FieldName 链构建，仅在 sourceValue==nil && Struct 时触发
 func (receiver *assignObj) ContainsSourceKey() bool {
+	// 从当前节点往上走，拼出 FullName（FieldName 链）
+	fullName := receiver.buildFullName()
 	for _, k := range receiver.sourceSlice {
-		if strings.HasPrefix(k.FullName, receiver.FullName) {
+		if strings.HasPrefix(k.FullName, fullName) {
 			return true
 		}
 	}
 	return false
+}
+
+// buildFullName 从 FieldName 父链重建 FullName（仅在 ContainsSourceKey 中按需调用）
+func (receiver *assignObj) buildFullName() string {
+	// 收集路径段（逆序）
+	var parts [20]string
+	n := 0
+	cur := receiver.valueMeta
+	for cur != nil && cur.FieldName != "" && n < 20 {
+		parts[n] = cur.FieldName
+		n++
+		cur = cur.Parent
+	}
+	if n == 0 {
+		return ""
+	}
+	// 反转并拼接
+	result := parts[n-1]
+	for i := n - 2; i >= 0; i-- {
+		result += parts[i]
+	}
+	return result
 }

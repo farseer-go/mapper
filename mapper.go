@@ -2,7 +2,6 @@ package mapper
 
 import (
 	"reflect"
-	"strings"
 
 	"github.com/farseer-go/collections"
 	"github.com/farseer-go/fs/types"
@@ -10,11 +9,30 @@ import (
 
 // Single 单个转换
 func Single[TEntity any](object any, set ...func(*TEntity)) TEntity {
-	itemType := reflect.ValueOf(object)
+	// 快速路径1：类型完全相同
+	if obj, ok := object.(TEntity); ok {
+		if len(set) > 0 {
+			set[0](&obj)
+		}
+		return obj
+	}
 
+	itemType := reflect.ValueOf(object)
 	var toObj TEntity
+	toObjType := reflect.TypeOf(toObj)
+
+	// 快速路径2：使用类型缓存
+	if canUseFastPath(itemType.Type(), toObjType) {
+		toObj = fastCopy[TEntity](object)
+		if len(set) > 0 {
+			set[0](&toObj)
+		}
+		return toObj
+	}
+
+	// 普通路径
 	_ = auto(itemType, &toObj)
-	if set != nil {
+	if len(set) > 0 {
 		set[0](&toObj)
 	}
 	return toObj
@@ -23,11 +41,11 @@ func Single[TEntity any](object any, set ...func(*TEntity)) TEntity {
 // ToList 支持：ListAny、List[xx]、[]xx转List[yy]
 func ToList[TEntity any](sliceOrListOrListAny any, set ...func(*TEntity, any)) collections.List[TEntity] {
 	sliceOrListOrListAnyValue := reflect.ValueOf(sliceOrListOrListAny)
-	kind := sliceOrListOrListAnyValue.Kind()
-	if kind == reflect.Ptr {
+	if sliceOrListOrListAnyValue.Kind() == reflect.Ptr {
 		sliceOrListOrListAnyValue = sliceOrListOrListAnyValue.Elem()
-		kind = sliceOrListOrListAnyValue.Kind()
 	}
+	kind := sliceOrListOrListAnyValue.Kind()
+
 	switch kind {
 	case reflect.Slice:
 		arr := Array[TEntity](sliceOrListOrListAny, set...)
@@ -55,14 +73,17 @@ func Array[TEntity any](fromSlice any, set ...func(*TEntity, any)) []TEntity {
 // arrayByReflectValue 数组转换
 // fromSlice=数组切片
 func arrayByReflectValue[TEntity any](sliArray reflect.Value, set ...func(*TEntity, any)) []TEntity {
-	var toSlice []TEntity
-	// 元素是否为基础类型
-	isGoBasicType := false
 	arrCount := sliArray.Len()
-	if arrCount > 0 {
-		itemType := sliArray.Index(0).Type()
-		isGoBasicType = types.IsGoBasicType(itemType)
+	if arrCount == 0 {
+		return []TEntity{}
 	}
+
+	// 预分配切片容量
+	toSlice := make([]TEntity, 0, arrCount)
+
+	// 元素是否为基础类型
+	itemType := sliArray.Index(0).Type()
+	isGoBasicType := types.IsGoBasicType(itemType)
 
 	// 基础类型
 	if isGoBasicType {
@@ -74,18 +95,16 @@ func arrayByReflectValue[TEntity any](sliArray reflect.Value, set ...func(*TEnti
 		return toSlice
 	}
 
-	// BenchmarkSample-12    	 1896634	       633 ns/op	     264 B/op	       7 allocs/op
-	// BenchmarkSample-12    	  375018	      3164 ns/op	     264 B/op	       7 allocs/op
 	// 复合类型
+	hasSet := len(set) > 0
 	for i := 0; i < arrCount; i++ {
 		var toObj TEntity
-		// BenchmarkSample-12    	   33852	     33642 ns/op	     264 B/op	       7 allocs/op
 		item := sliArray.Index(i)
 
-		// 基础类型
 		_ = auto(item, &toObj)
-		if set != nil {
-			set[0](&toObj, item.Interface())
+		if hasSet {
+			itemInterface := item.Interface()
+			set[0](&toObj, itemInterface)
 		}
 		toSlice = append(toSlice, toObj)
 	}
@@ -94,7 +113,9 @@ func arrayByReflectValue[TEntity any](sliArray reflect.Value, set ...func(*TEnti
 
 // ToMap 结构体转Map
 func ToMap[K comparable, V any](entity any) map[K]V {
-	dic := make(map[K]V)
+	fsVal := reflect.Indirect(reflect.ValueOf(entity))
+	fieldCount := fsVal.NumField()
+	dic := make(map[K]V, fieldCount)
 	_ = structToMap(entity, dic)
 	return dic
 }
@@ -105,21 +126,24 @@ func ToListAny(sliceOrList any) collections.ListAny {
 	if sliceOrListVal.Kind() == reflect.Ptr {
 		sliceOrListVal = sliceOrListVal.Elem()
 	}
-	sliceOrListType := sliceOrListVal.Type()
 
 	// 切片类型
 	if sliceOrListVal.Kind() == reflect.Slice || sliceOrListVal.Kind() == reflect.Array {
+		length := sliceOrListVal.Len()
 		lst := collections.NewListAny()
-		for i := 0; i < sliceOrListVal.Len(); i++ {
+		for i := 0; i < length; i++ {
 			itemValue := sliceOrListVal.Index(i).Interface()
 			lst.Add(itemValue)
 		}
 		return lst
 	}
-	if strings.HasPrefix(sliceOrListType.String(), "collections.List[") {
+
+	// List类型
+	if _, isOk := types.IsList(sliceOrListVal); isOk {
 		arr := types.GetListToArray(sliceOrListVal)
 		return collections.NewListAny(arr...)
 	}
+
 	panic("sliceOrList入参必须为切片或collections.List集合")
 }
 

@@ -23,10 +23,9 @@ type SamplePO struct {
 	IdFloat64 float64
 }
 
-// BenchmarkCopyStruct-12    	   14	  81,855216 ns/op	12800284 B/op	  610000 allocs/op （jinzhu）
-// BenchmarkSample1-12    	       28	  39,790300 ns/op	39680051 B/op	  100000 allocs/op
-// BenchmarkSample1-10             61     18,903289 ns/op   39680284 B/op     100001 allocs/op
-// BenchmarkSample1-10             64     18,751998 ns/op   38000186 B/op     370001 allocs/op
+// BenchmarkCopyStruct-12    	   	14	   			818.5 ns/op	 		128 B/op	    6 allocs/op （jinzhu）
+// BenchmarkSample1-12     	 		25506892        45.63 ns/op           96 B/op       1 allocs/op
+// BenchmarkSample1-12     			24262320        48.09 ns/op           96 B/op       1 allocs/op
 func BenchmarkSample1(b *testing.B) {
 	po := SamplePO{
 		UserName:  "UserName",
@@ -46,8 +45,6 @@ func BenchmarkSample1(b *testing.B) {
 	}
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		for i := 0; i < 10000; i++ {
-			mapper.Single[SamplePO](po)
-		}
+		mapper.Single[SamplePO](po)
 	}
 }
