@@ -69,6 +69,11 @@ func (receiver *assignObj) allocStructFieldByIndex(reflectValue reflect.Value, f
 
 // 赋值结构体
 func (receiver *assignObj) assembleStruct(sourceMeta *valueMeta) {
+	// 防止自引用结构体（如 *VO 内含 Top *VO、Parent *VO）导致无限递归
+	if receiver.valueMeta.Level >= 20 {
+		return
+	}
+
 	// BenchmarkSample-12    	     902	   1212457 ns/op	  960268 B/op	   10007 allocs/op
 	// 目标是否为指针
 	// 指针类型，只有在源值存在的情况下，才赋值。否则跳过
