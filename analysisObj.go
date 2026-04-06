@@ -39,7 +39,7 @@ func (receiver *analysisOjb) entry(fromVal reflect.Value) []*valueMeta {
 	case fastReflect.Struct:
 		receiver.analysisStruct()
 	default:
-		flog.Warningf("mapper未知的类型解析：%s", receiver.fromMeta.ReflectTypeString)
+		flog.Warningf("mapper未知的类型解析：%s", fromVal.String())
 	}
 
 	return receiver.source
