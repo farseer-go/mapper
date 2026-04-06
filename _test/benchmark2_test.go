@@ -61,7 +61,7 @@ type UserVO4 struct {
 
 // 优化前：1244 ms
 // 第1次优化：Benchmark2-12              54452             0,021936 ns/op            4327 B/op        214 allocs/op
-// 第2次优化：Benchmark2-12              65491             0,017990 ns/op            3451 B/op        176 allocs/op
+// 第2次优化：Benchmark2-12              66506             0,018117 ns/op            3459 B/op        176 allocs/op
 func Benchmark2(b *testing.B) {
 	lst := collections.NewList[UserVO]()
 	float3 := decimal.NewFromInt(3) // 需要时再打开

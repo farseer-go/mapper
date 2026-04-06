@@ -27,7 +27,7 @@ import (
 // 第14次优化：224 ms assignObj也使用arena                    Benchmark3-12    	        50	  223,734870 ns/op	 95542651 B/op	  2120052 allocs/op
 // 第15次优化：217 ms sourceMap用pool复用                     Benchmark3-12    	        54	  217,022196 ns/op	 60198918 B/op	  2090062 allocs/op
 // 第16次优化：210 ms source slice用pool复用                  Benchmark3-12    	        55	  209,637780 ns/op	 39723320 B/op	  2050050 allocs/op
-// 第17次优化：												 Benchmark3-12             6     173,084254 ns/op   32761560 B/op    1690043 allocs/op
+// 第17次优化：												 Benchmark3-12             6     173,084254 ns/op   32719506 B/op    1690039 allocs/op
 func Benchmark3(b *testing.B) {
 	lst := collections.NewList[UserVO]()
 	float3 := decimal.NewFromInt(3) // 需要时再打开

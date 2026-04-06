@@ -26,6 +26,7 @@ type SamplePO struct {
 // BenchmarkCopyStruct-12    	   	14	   			818.5 ns/op	 		128 B/op	    6 allocs/op （jinzhu）
 // BenchmarkSample1-12     	 		25506892        45.63 ns/op           96 B/op       1 allocs/op
 // BenchmarkSample1-12     			24262320        48.09 ns/op           96 B/op       1 allocs/op
+// BenchmarkSample1-12     			26076321        46.29 ns/op           96 B/op       1 allocs/op
 func BenchmarkSample1(b *testing.B) {
 	po := SamplePO{
 		UserName:  "UserName",
