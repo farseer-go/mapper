@@ -26,8 +26,8 @@ type typeMeta struct {
 
 // fieldMapping 字段映射
 type fieldMapping struct {
-	srcIndex int         // 源字段索引
-	dstIndex int         // 目标字段索引
+	srcIndex int // 源字段索引
+	dstIndex int // 目标字段索引
 	srcType  reflect.Type
 	dstType  reflect.Type
 	copyFunc func(src, dst reflect.Value) // 拷贝函数
@@ -206,8 +206,8 @@ func fastCopy[TEntity any](object any) TEntity {
 // metaArena 是每次 auto() 调用使用的局部分配器
 // 预分配一个大 slice，按需 bump-allocate，调用结束后整体归还，避免 per-object pool.Get 竞争
 type metaArena struct {
-	buf  []valueMeta // 预分配的内存块
-	pos  int         // 当前分配位置
+	buf  []valueMeta  // 预分配的内存块
+	pos  int          // 当前分配位置
 	ptrs []*valueMeta // 分配出去的指针（用于 source slice）
 }
 
@@ -243,11 +243,13 @@ func (a *metaArena) alloc() *valueMeta {
 	if a.pos < len(a.buf) {
 		m := &a.buf[a.pos]
 		a.pos++
-		// 重置字段
+		// 重置字段（必须包含 PointerMeta，否则 arena 复用时 Type 等字段会残留上次的值）
+		m.PointerMeta = fastReflect.PointerMeta{}
 		m.Parent = nil
 		m.FullName = ""
 		m.FullHash = 0
 		m.FieldName = ""
+		m.ReflectValue = reflect.Value{}
 		m.IsNil = false
 		m.IsAnonymous = false
 		m.IsIgnore = false
